@@ -13,6 +13,11 @@ from tv_watchlist.models.hero_candidate import HeroCandidate
 from tv_watchlist.services.attribution import PIPE, TABLE_HEADER, credit_hero_row
 
 CURATED = Path(__file__).resolve().parents[3] / "heroes" / HERO_ATTRIBUTION_FILENAME
+CRLF = b"\r\n"
+LF = b"\n"
+# The checked-out ending of a committed .md is decided by .gitattributes and the platform, so these
+# are parametrised rather than assumed: asserting CRLF here passed on Windows and failed on CI.
+BOTH_ENDINGS = pytest.mark.parametrize("ending", [CRLF, LF], ids=["crlf", "lf"])
 CATEGORY_NAME = "A_Category_Master_Watch_Order"
 CANDIDATE = HeroCandidate(
     url="https://upload.wikimedia.org/wikipedia/commons/6/6c/Series_Logo.png",
@@ -34,6 +39,18 @@ def curated(tmp_path: Path) -> Path:
 def rows_of(path: Path) -> list[str]:
     """Every table row in the file, header and separator included."""
     return [line for line in path.read_text(encoding="utf-8").splitlines() if line.startswith("|")]
+
+
+def endings_in(data: bytes) -> set[bytes]:
+    """Every distinct line ending the bytes actually use."""
+    crlf = data.count(CRLF)
+    return {ending for ending, count in ((CRLF, crlf), (LF, data.count(LF) - crlf)) if count}
+
+
+def written_with(path: Path, ending: bytes) -> Path:
+    """The same table, rewritten to use one line ending throughout."""
+    path.write_bytes(path.read_bytes().replace(CRLF, LF).replace(LF, ending))
+    return path
 
 
 def test_the_appended_row_matches_the_columns_the_curated_table_already_uses(curated: Path) -> None:
@@ -61,14 +78,15 @@ def test_every_byte_that_was_already_there_is_still_there_unchanged(curated: Pat
     assert curated.read_bytes().startswith(original)
 
 
-def test_the_row_keeps_the_line_ending_the_file_is_written_in(curated: Path) -> None:
-    before = curated.read_bytes()
+@BOTH_ENDINGS
+def test_the_row_keeps_the_line_ending_the_file_is_written_in(curated: Path, ending: bytes) -> None:
+    before = written_with(curated, ending).read_bytes()
 
     credit_hero_row(curated, CATEGORY_NAME, CANDIDATE)
 
     after = curated.read_bytes()
-    assert after.count(b"\r\n") == before.count(b"\r\n") + 1
-    assert after.count(b"\n") == after.count(b"\r\n")
+    assert after.count(ending) == before.count(ending) + 1
+    assert endings_in(after) == {ending}
 
 
 def test_a_file_that_is_not_there_yet_gains_the_header_before_its_first_row(tmp_path: Path) -> None:
@@ -204,15 +222,17 @@ def test_the_curated_prose_above_the_table_survives_a_replacement(curated: Path)
     assert curated.read_text(encoding="utf-8").startswith(preamble)
 
 
-def test_a_replacement_keeps_the_line_ending_the_file_is_written_in(curated: Path) -> None:
+@BOTH_ENDINGS
+def test_a_replacement_keeps_the_line_ending_the_file_is_written_in(curated: Path, ending: bytes) -> None:
+    written_with(curated, ending)
     credit_hero_row(curated, CATEGORY_NAME, CANDIDATE)
     before = curated.read_bytes()
 
     credit_hero_row(curated, CATEGORY_NAME, A_SECOND_CANDIDATE)
 
     after = curated.read_bytes()
-    assert after.count(b"\r\n") == before.count(b"\r\n")
-    assert after.count(b"\n") == after.count(b"\r\n")
+    assert after.count(ending) == before.count(ending)
+    assert endings_in(after) == {ending}
 
 
 def test_a_name_that_only_looks_like_another_after_escaping_is_still_its_own_row(curated: Path) -> None:
