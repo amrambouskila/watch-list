@@ -5,7 +5,7 @@
 # nginx is also the reverse proxy: /api and /heroes go to the backend container, so the browser
 # only ever talks to one origin and the app's CORS configuration never comes into it.
 
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 
 ENV PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH \
