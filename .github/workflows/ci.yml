@@ -214,7 +214,7 @@ jobs:
         run: uv run pytest --cov=src --cov-report=xml --cov-report=term --junitxml=junit-backend.xml
       - name: Publish test report
         if: ${{ !cancelled() }}
-        uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         with:
           name: backend tests
           path: app/backend/junit-backend.xml
@@ -262,7 +262,7 @@ jobs:
           --coverage.reporter=json-summary
       - name: Publish test report
         if: ${{ !cancelled() }}
-        uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         with:
           name: frontend tests
           path: app/frontend/junit-frontend.xml
@@ -310,7 +310,7 @@ jobs:
         run: pnpm exec playwright test --config layout/playwright.config.ts --reporter=list,junit
       - name: Publish test report
         if: ${{ !cancelled() }}
-        uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         with:
           name: layout guard
           # Playwright resolves the JUnit filename against the config's directory, not the cwd.
