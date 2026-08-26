@@ -162,15 +162,20 @@ graph LR
 | **docker-build** | Builds both images and scans each with `trivy --severity HIGH,CRITICAL --ignore-unfixed` |
 
 `.github/workflows/codeql.yml` adds GitHub's own analysis for `python` and `javascript-typescript`
-on every push and PR plus a weekly schedule. `.github/dependabot.yml` opens weekly dependency PRs
-for pip, npm, GitHub Actions and Docker, each with a seven-day `cooldown` so a package published
-this week is not proposed here until it has had time to be found wanting.
+on every push and PR plus a weekly schedule.
+
+**There is deliberately no `dependabot.yml`.** It was here briefly and opened eleven pull requests
+in its first hour — five ecosystems on a weekly cadence, most of them proposing major version bumps
+of tooling this app does not need to chase. For a personal project touched a few times a year that
+is noise, and noise is how a pipeline stops being read. Dependabot *security* alerts are a
+repository setting rather than a file, so they keep working: you still hear about an actual
+vulnerability, just not about TypeScript 5.9 becoming 6.0.
 
 Every `uses:` in both workflows is pinned to a 40-character commit SHA, with the release it belongs
 to in the trailing comment. A tag is mutable — an action's owner can silently repoint `@v4` at new
-code — and Semgrep fails the `sast` stage on any tag reference. Dependabot bumps the SHAs and
-rewrites the comments. The scanners are the deliberate exception and run from `:latest` images,
-because pinning a scanner freezes the rule set and vulnerability database it exists to keep current.
+code — and Semgrep fails the `sast` stage on any tag reference. With Dependabot gone those SHAs are
+now bumped by hand, which is the trade: fewer interruptions, and an occasional deliberate afternoon
+updating pins rather than a trickle of pull requests.
 
 **About the coverage floors.** The frontend number looks low because Vitest is not the whole
 frontend test story: most components are exercised by the Playwright layout guard, in a real
