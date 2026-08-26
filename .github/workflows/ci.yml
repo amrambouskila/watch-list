@@ -132,7 +132,7 @@ jobs:
       - name: Publish findings to the Security tab
         # Runs whether semgrep passed or failed - a failing scan is exactly when the report matters.
         if: ${{ !cancelled() }}
-        uses: github/codeql-action/upload-sarif@6f5948dfacef28e207b48d0905cf90c03365536d # v3.37.9
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
         with:
           sarif_file: semgrep.sarif
           category: semgrep
