@@ -1,0 +1,84 @@
+# Line endings and binary safety.
+#
+# This repo is cloned on Windows and on macOS and has to work on both. Two things here are
+# load-bearing, and both have already cost this project real debugging time:
+#
+#   * run_tv.sh must check out with LF. A CRLF checkout breaks the shebang and bash reports
+#     "bad interpreter: /usr/bin/env bash^M".
+#   * The .xlsx workbooks are the database. An .xlsx is a zip container, so a text-mode
+#     checkout would rewrite bytes inside it and corrupt every workbook in the library.
+#     Marking them binary is the single most important line in this file.
+
+# Normalise to LF in the object store, check out per platform, for everything git decides is text.
+* text=auto
+
+# --- Scripts: the shell decides the ending, not the platform ------------------------------
+*.sh    text eol=lf
+*.bash  text eol=lf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# --- Source and config: LF everywhere, so a diff never turns into a whole-file rewrite -----
+*.py    text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.cjs   text eol=lf
+*.mjs   text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.toml  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.cfg   text eol=lf
+*.ini   text eol=lf
+*.svg   text eol=lf
+.gitattributes text eol=lf
+.gitignore     text eol=lf
+.semgrepignore text eol=lf
+LICENSE        text eol=lf
+Dockerfile     text eol=lf
+*.Dockerfile   text eol=lf
+.dockerignore  text eol=lf
+nginx.conf     text eol=lf
+
+# --- Lockfiles: text, but generated. Keep them out of diffs and language stats -------------
+uv.lock        text eol=lf linguist-generated=true
+pnpm-lock.yaml text eol=lf linguist-generated=true
+
+# --- Binary: never converted, never diffed ------------------------------------------------
+# The library itself. `binary` is git's macro for `-text -diff`.
+*.xlsx  binary
+*.xlsm  binary
+*.xls   binary
+
+# Card artwork under app/heroes/ and any screenshot. The hero loader accepts png/svg/jpg/jpeg/
+# webp/avif/gif, so every raster form it can be handed is listed even where none is here yet.
+# (.svg is text and is handled above.)
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.avif  binary
+*.gif   binary
+*.ico   binary
+*.bmp   binary
+*.tif   binary
+*.tiff  binary
+
+# Fonts, if any ever land in the tree rather than coming from node_modules.
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.eot   binary
+
+# Odds and ends that must never be line-ending converted.
+*.pdf   binary
+*.zip   binary
+*.gz    binary
+*.mp4   binary
+*.webm  binary

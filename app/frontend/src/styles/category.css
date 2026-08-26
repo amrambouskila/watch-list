@@ -1,0 +1,281 @@
+.stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background:
+    radial-gradient(120rem 40rem at 12% -12rem, var(--accent-soft), transparent 60%),
+    var(--ink-950);
+}
+
+/*
+ * Flex children shrink by default, which lets the browser squash the list to fit the stage
+ * instead of overflowing it — the content then spills outside the scroll extent and the last
+ * row cannot be reached. Every child keeps its natural height so the scrollbar covers it all.
+ */
+.stage > * {
+  flex: none;
+}
+
+.banner {
+  padding: var(--gap-6) var(--gap-6) var(--gap-4);
+  border-bottom: 1px solid var(--edge);
+}
+
+.banner__title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: var(--step-6);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+
+.banner__source {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-3);
+  margin-bottom: var(--gap-2);
+}
+
+.banner__back {
+  font-family: var(--mono);
+  font-size: var(--step-0);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.banner__back::before {
+  content: "←";
+  margin-right: 0.4rem;
+}
+
+.banner__back:hover {
+  text-decoration: underline;
+}
+
+/* The sheet title gives ground first, so a long one cannot push the retire control past the edge. */
+.banner__source .eyebrow {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Never shrinks and never wraps out of reach: whatever the sheet title's length, this stays put. */
+.banner__retire {
+  flex: none;
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: var(--step-0);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mist-500);
+}
+
+.banner__retire:hover,
+.banner__retire:focus-visible {
+  color: var(--danger);
+  text-decoration: underline;
+}
+
+.banner__rename {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-3);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  /* Form controls carry a UA text-transform that beats inheritance from .banner__title. */
+  text-transform: inherit;
+  letter-spacing: inherit;
+}
+
+.banner__pencil {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: none;
+  color: var(--mist-500);
+  opacity: 0;
+  transition: opacity 140ms ease, color 140ms ease;
+}
+
+.banner__rename:hover .banner__pencil,
+.banner__rename:focus-visible .banner__pencil {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.rename {
+  margin: 0 0 var(--gap-2);
+}
+
+.rename__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-2);
+}
+
+.rename__field {
+  flex: 1;
+  min-width: 16rem;
+  max-width: 40rem;
+  font-family: var(--mono);
+  font-size: var(--step-3);
+}
+
+.rename__suffix {
+  font-size: var(--step-2);
+  color: var(--mist-500);
+}
+
+.rename__preview {
+  margin: var(--gap-2) 0 0;
+  font-size: var(--step-2);
+  color: var(--mist-500);
+}
+
+.rename__preview strong {
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.banner__tally {
+  margin: var(--gap-3) 0 0;
+  font-size: var(--step-2);
+  color: var(--mist-400);
+}
+
+.banner__progress {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-3);
+  margin-top: var(--gap-3);
+  max-width: 34rem;
+}
+
+.banner__track {
+  flex: 1;
+  height: 6px;
+  background: var(--ink-800);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.banner__track span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+  transition: width 320ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.banner__percent {
+  font-family: var(--mono);
+  font-size: var(--step-2);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  min-width: 3ch;
+  text-align: right;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-3);
+  padding: var(--gap-3) var(--gap-6);
+  border-bottom: 1px solid var(--edge);
+  background: rgba(11, 14, 19, 0.72);
+  backdrop-filter: blur(6px);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.chips {
+  display: flex;
+  gap: var(--gap-1);
+}
+
+.chip {
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: var(--step-1);
+  color: var(--mist-400);
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.chip:hover {
+  color: var(--paper);
+  background: var(--ink-800);
+}
+
+.chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chip__count {
+  margin-left: 0.35rem;
+  font-family: var(--mono);
+  font-size: var(--step-0);
+  opacity: 0.75;
+}
+
+.controls__search {
+  flex: 1;
+  min-width: 12rem;
+  max-width: 22rem;
+}
+
+.controls__spacer {
+  flex: 1;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-3);
+  margin: var(--gap-4) var(--gap-6) 0;
+  padding: var(--gap-3) var(--gap-4);
+  border: 1px solid var(--edge-strong);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--ink-850);
+  font-size: var(--step-2);
+  color: var(--mist-400);
+}
+
+.notice--locked {
+  border-left-color: var(--danger);
+}
+
+.empty {
+  padding: var(--gap-6);
+  color: var(--mist-500);
+}
+
+.empty__headline {
+  margin: 0 0 var(--gap-2);
+  font-family: var(--display);
+  font-size: var(--step-5);
+  color: var(--paper);
+}
+
+@media (max-width: 60rem) {
+  .banner,
+  .controls {
+    padding-left: var(--gap-4);
+    padding-right: var(--gap-4);
+  }
+
+  .banner__title {
+    font-size: var(--step-5);
+  }
+}

@@ -1,0 +1,83 @@
+# Weekly dependency PRs for all four ecosystems in this repo.
+#
+# Note on the Python half: `pip` reads app/backend/pyproject.toml and proposes bumps to the
+# declared ranges. It does not rewrite uv.lock, so a merged bump wants `uv lock` run afterwards.
+# Swap the ecosystem to `uv` if you would rather Dependabot maintain the lockfile itself.
+#
+# Every ecosystem carries `cooldown: default-days: 7`. A package published in the last week does
+# not get proposed here at all, which is the window in which a compromised release is normally
+# spotted and yanked. Semgrep's dependabot-missing-cooldown rule fails the sast stage without it.
+
+version: 2
+
+updates:
+  # --- Python ---------------------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    directory: "/app/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "python"]
+    commit-message:
+      prefix: "chore(deps)"
+
+  # --- Node -----------------------------------------------------------------------------------
+  # Reads app/frontend/pnpm-lock.yaml; pnpm workspaces are understood by the npm ecosystem.
+  - package-ecosystem: "npm"
+    directory: "/app/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "frontend"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Type packages and lint plugins churn constantly and never need reviewing one at a time.
+      dev-tooling:
+        dependency-type: "development"
+        patterns:
+          - "@types/*"
+          - "eslint*"
+          - "typescript-eslint"
+          - "@vitest/*"
+
+  # --- GitHub Actions -------------------------------------------------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "chore(ci)"
+
+  # --- Docker base images ---------------------------------------------------------------------
+  - package-ecosystem: "docker"
+    directory: "/app/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+    labels: ["dependencies", "docker"]
+    commit-message:
+      prefix: "chore(docker)"
+
+  - package-ecosystem: "docker"
+    directory: "/app/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+    labels: ["dependencies", "docker"]
+    commit-message:
+      prefix: "chore(docker)"

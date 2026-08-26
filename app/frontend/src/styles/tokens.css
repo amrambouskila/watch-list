@@ -1,0 +1,55 @@
+:root {
+  --ink-950: #0b0e13;
+  --ink-900: #10141b;
+  --ink-850: #141922;
+  --ink-800: #1a2029;
+  --ink-750: #202834;
+  --ink-700: #29323f;
+  --ink-650: #364150;
+
+  --mist-500: #6b7889;
+  --mist-400: #8a97a8;
+  --mist-200: #c6d0dc;
+  --paper: #f0f4f9;
+
+  --edge: rgba(255, 255, 255, 0.07);
+  --edge-strong: rgba(255, 255, 255, 0.13);
+
+  --danger: #ff8080;
+  --danger-dim: #3a1f22;
+
+  --accent: #8ab4ff;
+  --accent-dim: #2b3d5c;
+  --accent-soft: rgba(138, 180, 255, 0.14);
+
+  --display: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+
+  --step-0: 0.6875rem;
+  --step-1: 0.75rem;
+  --step-2: 0.8125rem;
+  --step-3: 0.875rem;
+  --step-4: 1rem;
+  --step-5: 1.375rem;
+  --step-6: 2.25rem;
+
+  --gap-1: 0.25rem;
+  --gap-2: 0.5rem;
+  --gap-3: 0.75rem;
+  --gap-4: 1rem;
+  --gap-5: 1.5rem;
+  --gap-6: 2.25rem;
+  --gap-7: 4rem;
+
+  --radius: 6px;
+  --radius-lg: 10px;
+
+  --sidebar-width: 17.5rem;
+  --rail-width: 2.25rem;
+  --order-width: 2.75rem;
+  /* The pull tab holds a column of the shell rather than floating over it, so its width is layout. */
+  --launcher-width: 2.25rem;
+  /* A lane of toasts must never take more of the window than the app the toasts came from. */
+  --toast-lane-max: 30vh;
+}

@@ -1,0 +1,44 @@
+# Paths semgrep skips. Declaring this file replaces semgrep's built-in default ignore list, so the
+# usual suspects are repeated here rather than assumed.
+#
+# In CI semgrep runs over a fresh checkout and most of this is moot; locally it is what keeps a
+# scan from walking a 400 MB node_modules.
+
+# Dependencies and virtualenvs
+node_modules/
+.venv/
+venv/
+.pnpm-store/
+
+# Build output and caches
+dist/
+build/
+coverage/
+htmlcov/
+.vite/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+test-results/
+playwright-report/
+blob-report/
+.playwright-mcp/
+
+# The library itself: binary workbooks and card artwork, plus the local snapshot folder.
+*.xlsx
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.webp
+*.avif
+*.gif
+app/.backups/
+
+# Lockfiles
+uv.lock
+pnpm-lock.yaml
+
+# Scan output
+*.sarif

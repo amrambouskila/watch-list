@@ -1,0 +1,70 @@
+# The whole app in two containers. Compose v2 syntax - no top-level `version:` key.
+#
+#   docker compose up --build -d      start
+#   docker compose down               stop
+#
+# The library is bind-mounted, not copied: the containers read and write the very same workbooks
+# a clone arrives with, so nothing has to be exported back out afterwards.
+#
+# NOT available in here: the chat feature. It shells out to the `claude` CLI and to Playwright's
+# Chromium, and the backend image carries neither, so /api/chat answers 503 and everything else
+# works. Run ./run_tv.sh or run_tv.bat on the host if you want chat.
+
+name: tv-watchlist
+
+services:
+  backend:
+    build:
+      context: ./app/backend
+    image: tv-watchlist-backend:local
+    restart: unless-stopped
+    environment:
+      # TV_LIBRARY_DIR is not optional. The app's settings default derives the library path from
+      # where its own source file landed, which inside the image is not where the library is
+      # mounted, so it has to be told. The other two follow it for the same reason.
+      TV_LIBRARY_DIR: /library
+      TV_HEROES_DIR: /library/app/heroes
+      TV_BACKUP_DIR: /library/app/.backups
+      # The container always listens on 8284; only the published port below is configurable.
+      TV_BACKEND_PORT: "8284"
+      # Used solely to build the CORS allowlist. The browser talks to nginx, same-origin, so this
+      # matters only if you point a browser straight at the published backend port.
+      TV_FRONTEND_PORT: "${TV_FRONTEND_PORT:-5284}"
+    volumes:
+      # The repo root IS the library: the 18 workbooks, app/heroes for artwork, app/.backups for
+      # the pre-write snapshots. Point TV_LIBRARY_HOST somewhere else to run the containers
+      # against a copy instead of against the real thing.
+      - "${TV_LIBRARY_HOST:-.}:/library"
+    ports:
+      - "${TV_BACKEND_PORT:-8284}:8284"
+    healthcheck:
+      # /openapi.json is served by FastAPI itself and touches no workbook, so a health probe every
+      # 15s does not re-read the library.
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8284/openapi.json', timeout=5)
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./app/frontend
+    image: tv-watchlist-frontend:local
+    restart: unless-stopped
+    ports:
+      # 8080 inside: the nginx image runs unprivileged and cannot bind a port below 1024.
+      - "${TV_FRONTEND_PORT:-5284}:8080"
+    depends_on:
+      # nginx resolves the `backend` upstream once, at startup, so it must not start first.
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8080/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

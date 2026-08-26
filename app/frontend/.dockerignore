@@ -1,0 +1,13 @@
+# node_modules holds binaries built for the host; the image installs its own.
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+*.tsbuildinfo
+junit-*.xml
+Dockerfile
+.dockerignore
+.env
+.env.*

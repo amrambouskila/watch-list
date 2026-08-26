@@ -1,0 +1,17 @@
+# The build needs pyproject.toml, uv.lock and src/. Nothing else.
+.venv/
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+junit-*.xml
+tests/
+Dockerfile
+.dockerignore
+.env
+.env.*

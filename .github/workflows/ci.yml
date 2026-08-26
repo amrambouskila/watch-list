@@ -1,0 +1,434 @@
+# lint -> sast -> test -> coverage gate -> build -> docker-build.
+#
+# Ordering is expressed with `needs:`, so a stage never starts until the one before it is green.
+# Every test job publishes a JUnit report under its own filename; the coverage gate holds the two
+# suites at the figures they measure today, so they can rise but not slip.
+#
+# Every `uses:` is pinned to a 40-character commit SHA, with the release it belongs to in the
+# trailing comment. A tag is mutable - the owner of an action can silently repoint `@v4` at new
+# code, which is how the trivy-action and kics-github-action compromises reached their users - and
+# Semgrep's github-actions-mutable-action-tag rule fails the sast stage on any tag reference.
+# Dependabot's github-actions ecosystem bumps these SHAs and rewrites the comment with them.
+#
+# The scanners are the deliberate exception: semgrep, gitleaks and trivy run from `:latest`
+# images, because pinning a scanner freezes its rule set and its vulnerability database, which is
+# the opposite of what it is there for.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "9.15.9"
+  # Measured on this tree, not aspirational. Backend: 2259 of 2322 lines. Frontend: what the Vitest
+  # suite alone reaches - the components it does not cover are exercised by the Playwright layout
+  # guard, which produces no coverage data. Raising these toward 100 is separate work; lowering one
+  # is a regression, and this gate exists to say so.
+  BACKEND_MIN_LINES: "97"
+  FRONTEND_MIN_LINES: "56"
+  FRONTEND_MIN_STATEMENTS: "54"
+  FRONTEND_MIN_FUNCTIONS: "45"
+  FRONTEND_MIN_BRANCHES: "45"
+
+jobs:
+  # ============================================================================================
+  # 1. lint
+  # ============================================================================================
+  lint-backend:
+    name: lint / backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/backend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: app/backend/uv.lock
+      - name: Install
+        run: uv sync --frozen --group dev
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: Ruff format
+        run: uv run ruff format --check .
+
+  lint-frontend:
+    name: lint / frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: app/frontend/pnpm-lock.yaml
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: ESLint
+        run: pnpm lint
+      - name: TypeScript
+        run: pnpm exec tsc -b
+
+  # ============================================================================================
+  # 2. sast
+  # ============================================================================================
+  sast-semgrep:
+    name: sast / semgrep
+    runs-on: ubuntu-latest
+    needs: [lint-backend, lint-frontend]
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Semgrep
+        # `semgrep scan`, never `semgrep ci`: the ci subcommand rejects --error and exits 2 on it.
+        # .semgrepignore at the repo root decides what is skipped.
+        # Run from the published image rather than installing the package, so this is byte for byte
+        # the command in the README that a person can reproduce on their own machine.
+        #
+        # NO `--config auto`, deliberately. `auto` asks the registry to choose, so the registry can
+        # introduce whole new rule CATEGORIES between one run and the next - which is not a
+        # hypothetical: this pipeline went from 0 findings to 41 in under an hour that way, none of
+        # them about this app's code. The named packs below change far more slowly and only in
+        # content, so a red build means something changed here.
+        #
+        # `--severity ERROR` gates on high severity only, which is what the project's standard
+        # actually asks for. WARNING and INFO findings still reach the Security tab through the
+        # SARIF upload below, so nothing is hidden - they just do not block a build.
+        #
+        # Metrics can be off now: only `--config auto` requires them to be on.
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep semgrep scan \
+            --config p/default \
+            --config p/owasp-top-ten \
+            --config p/python \
+            --config p/typescript \
+            --config p/react \
+            --config p/docker \
+            --severity ERROR \
+            --error \
+            --metrics=off \
+            --sarif --output /src/semgrep.sarif
+      - name: Publish findings to the Security tab
+        # Runs whether semgrep passed or failed - a failing scan is exactly when the report matters.
+        if: ${{ !cancelled() }}
+        uses: github/codeql-action/upload-sarif@6f5948dfacef28e207b48d0905cf90c03365536d # v3.37.9
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  sast-audit:
+    name: sast / dependency audit
+    runs-on: ubuntu-latest
+    needs: [lint-backend, lint-frontend]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: app/backend/uv.lock
+      - name: Export the locked runtime dependency set
+        working-directory: app/backend
+        run: uv export --frozen --no-dev --no-emit-project --format requirements-txt --output-file requirements-audit.txt
+      - name: pip-audit
+        working-directory: app/backend
+        # The lockfile is the subject, so the project environment never has to be built.
+        run: uvx pip-audit -r requirements-audit.txt --disable-pip
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: pnpm audit
+        working-directory: app/frontend
+        # Reads pnpm-lock.yaml directly, so no install is needed.
+        run: pnpm audit --audit-level=high
+
+  sast-secrets:
+    name: sast / secrets
+    runs-on: ubuntu-latest
+    needs: [lint-backend, lint-frontend]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: gitleaks
+        # Run from the published image rather than an action: no licence key to hold, and no
+        # action version to keep in step with the scanner.
+        run: |
+          docker run --rm -v "$PWD:/src" ghcr.io/gitleaks/gitleaks:latest \
+            detect --source /src --no-git --redact
+
+  sast:
+    name: sast
+    runs-on: ubuntu-latest
+    needs: [sast-semgrep, sast-audit, sast-secrets]
+    steps:
+      - name: All scanners green
+        run: echo "semgrep, pip-audit, pnpm audit and gitleaks all passed."
+
+  # ============================================================================================
+  # 3. test
+  # ============================================================================================
+  test-backend:
+    name: test / backend
+    runs-on: ubuntu-latest
+    needs: [sast]
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: app/backend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: app/backend/uv.lock
+      - name: Install
+        run: uv sync --frozen --group dev
+      - name: pytest
+        # The suite copies the committed workbooks into a tmp directory per test, so it runs
+        # against the real library without ever writing to it.
+        run: uv run pytest --cov=src --cov-report=xml --cov-report=term --junitxml=junit-backend.xml
+      - name: Publish test report
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
+        with:
+          name: backend tests
+          path: app/backend/junit-backend.xml
+          reporter: java-junit
+      - name: Keep the coverage report for the gate
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-backend
+          path: app/backend/coverage.xml
+          retention-days: 7
+
+  test-frontend:
+    name: test / frontend
+    runs-on: ubuntu-latest
+    needs: [sast]
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: app/frontend/pnpm-lock.yaml
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Vitest
+        # Both reporters: junit for the CI UI, default so the log is still readable by a person.
+        run: >
+          pnpm test --
+          --reporter=default
+          --reporter=junit
+          --outputFile.junit=junit-frontend.xml
+          --coverage
+          --coverage.reporter=text-summary
+          --coverage.reporter=json-summary
+      - name: Publish test report
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
+        with:
+          name: frontend tests
+          path: app/frontend/junit-frontend.xml
+          reporter: java-junit
+      - name: Keep the coverage report for the gate
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-frontend
+          path: app/frontend/coverage/coverage-summary.json
+          retention-days: 7
+
+  test-layout:
+    name: test / layout guard
+    runs-on: ubuntu-latest
+    needs: [sast]
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: app/frontend/pnpm-lock.yaml
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        # jsdom has no layout engine, so this guard needs a real browser and there is no way round
+        # downloading one.
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Layout guard
+        # Invoked through `pnpm exec` rather than the `test:layout` script because
+        # `pnpm run test:layout -- ...` does not forward the extra reporter flags to playwright.
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: junit-layout.xml
+        run: pnpm exec playwright test --config layout/playwright.config.ts --reporter=list,junit
+      - name: Publish test report
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
+        with:
+          name: layout guard
+          # Playwright resolves the JUnit filename against the config's directory, not the cwd.
+          path: app/frontend/layout/junit-layout.xml
+          reporter: java-junit
+
+  # ============================================================================================
+  # 4. coverage gate
+  # ============================================================================================
+  coverage-gate:
+    name: coverage gate
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: coverage-backend
+          path: coverage-backend
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: coverage-frontend
+          path: coverage-frontend
+      - name: Hold both suites at the line they reached
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          import xml.etree.ElementTree as ET
+
+          failures = []
+
+          def check(label, actual, floor):
+              mark = "ok " if actual >= floor else "LOW"
+              print(f"  [{mark}] {label:<12} {actual:6.2f}%   floor {floor:.2f}%")
+              if actual < floor:
+                  failures.append(f"{label} fell to {actual:.2f}%, below the {floor:.2f}% floor")
+
+          root = ET.parse("coverage-backend/coverage.xml").getroot()
+          print("backend")
+          check("lines", float(root.get("line-rate")) * 100, float(os.environ["BACKEND_MIN_LINES"]))
+
+          with open("coverage-frontend/coverage-summary.json") as handle:
+              totals = json.load(handle)["total"]
+          print("frontend")
+          for key, floor_var in (
+              ("lines", "FRONTEND_MIN_LINES"),
+              ("statements", "FRONTEND_MIN_STATEMENTS"),
+              ("functions", "FRONTEND_MIN_FUNCTIONS"),
+              ("branches", "FRONTEND_MIN_BRANCHES"),
+          ):
+              check(key, float(totals[key]["pct"]), float(os.environ[floor_var]))
+
+          if failures:
+              print("\nCoverage regressed:")
+              for line in failures:
+                  print(f"  - {line}")
+              print("\nAdd tests. Do not lower the floor.")
+              sys.exit(1)
+          print("\nCoverage held.")
+          PY
+
+  # ============================================================================================
+  # 5. build
+  # ============================================================================================
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    needs: [coverage-gate]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: app/backend/uv.lock
+      - name: Build the backend distribution
+        working-directory: app/backend
+        run: uv build
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: app/frontend/pnpm-lock.yaml
+      - name: Install
+        working-directory: app/frontend
+        run: pnpm install --frozen-lockfile
+      - name: Build the frontend bundle
+        working-directory: app/frontend
+        run: pnpm build
+      - name: Validate docker-compose.yml
+        run: docker compose config --quiet
+
+  # ============================================================================================
+  # 6. docker-build
+  # ============================================================================================
+  docker-build:
+    name: docker-build / ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: [build]
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [backend, frontend]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Build the image
+        run: docker build -t tv-watchlist-${{ matrix.service }}:ci app/${{ matrix.service }}
+      - name: Trivy
+        # --ignore-unfixed: a slim base image always carries distribution CVEs that have no fix
+        # available yet, and failing on those makes the gate noise instead of signal. Everything a
+        # rebuild or a version bump can actually clear still fails the job. Run from the published
+        # image so the scanner and its vulnerability database are always current.
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --scanners vuln \
+            --exit-code 1 \
+            tv-watchlist-${{ matrix.service }}:ci

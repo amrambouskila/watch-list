@@ -1,0 +1,198 @@
+.home .banner {
+  border-bottom: none;
+  padding-bottom: var(--gap-3);
+}
+
+.home__search {
+  margin-top: var(--gap-4);
+  max-width: 26rem;
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: var(--gap-2) var(--gap-6) var(--gap-7);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--gap-4);
+}
+
+.card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-lg);
+  background: var(--ink-900);
+  overflow: hidden;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45);
+}
+
+.card__hero {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--ink-850);
+}
+
+.hero__art,
+.hero__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* A logo mark sits above the generated art, clear of the name along the bottom edge. */
+.hero__logo {
+  position: absolute;
+  top: 9%;
+  left: 12%;
+  width: 76%;
+  height: 58%;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.55));
+}
+
+/* Keeps the name readable over both generated art and a dropped-in photo. */
+.card__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 14, 19, 0) 35%, rgba(11, 14, 19, 0.9) 100%);
+}
+
+.card__name {
+  position: absolute;
+  left: var(--gap-3);
+  right: var(--gap-3);
+  bottom: var(--gap-2);
+  font-family: var(--display);
+  font-size: var(--step-5);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+  color: var(--paper);
+  text-wrap: balance;
+}
+
+.card__badge {
+  position: absolute;
+  top: var(--gap-2);
+  right: var(--gap-2);
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: var(--danger-dim);
+  color: var(--danger);
+  font-family: var(--mono);
+  font-size: var(--step-0);
+}
+
+.card__body {
+  display: block;
+  padding: var(--gap-3);
+}
+
+.card__stats {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gap-2);
+}
+
+.card__count {
+  font-size: var(--step-4);
+  color: var(--accent);
+}
+
+.card__of {
+  flex: 1;
+  font-size: var(--step-1);
+  color: var(--mist-500);
+}
+
+.card__percent {
+  font-size: var(--step-1);
+  color: var(--mist-400);
+}
+
+.card__meter {
+  display: block;
+  height: 3px;
+  margin-top: var(--gap-2);
+  background: var(--ink-750);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.card__meter span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 260ms ease;
+}
+
+.card__foot {
+  display: block;
+  margin-top: var(--gap-2);
+  font-size: var(--step-1);
+  color: var(--mist-500);
+}
+
+.card--new {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-2);
+  min-height: 100%;
+  padding: var(--gap-5) var(--gap-4);
+  border-style: dashed;
+  border-color: var(--edge-strong);
+  background: transparent;
+  text-align: center;
+}
+
+.card--new:hover {
+  border-color: var(--accent);
+  background: var(--ink-900);
+}
+
+.card__plus {
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--mist-500);
+}
+
+.card--new:hover .card__plus {
+  color: var(--accent);
+}
+
+.card__name--new {
+  position: static;
+  font-size: var(--step-4);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.home__unreadable {
+  padding: 0 var(--gap-6) var(--gap-6);
+}
+
+@media (max-width: 60rem) {
+  .cards,
+  .home__unreadable {
+    padding-left: var(--gap-3);
+    padding-right: var(--gap-3);
+  }
+}

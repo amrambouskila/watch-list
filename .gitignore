@@ -1,0 +1,90 @@
+# ---------------------------------------------------------------------------------------------
+# The workbooks ARE the database.
+#
+# The eighteen *.xlsx files at the repo root and the artwork in app/heroes/ are COMMITTED ON
+# PURPOSE. That is the whole point of this repo being portable: a clone arrives with the library
+# already in it and there is nothing to migrate or import. Do not add *.xlsx to this file.
+# ---------------------------------------------------------------------------------------------
+
+# --- OS junk ---------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# --- Editors / IDEs --------------------------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# --- Claude Code state -----------------------------------------------------------------------
+.claude/
+
+# --- Environment / secrets -------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# --- Excel's own lock files ------------------------------------------------------------------
+# Excel drops ~$Name.xlsx beside a workbook it has open. It is a lock, not data, and the app
+# already refuses to write past one.
+~$*
+
+# --- Local snapshots -------------------------------------------------------------------------
+# Pre-write backups of the workbooks. Local history, not source.
+app/.backups/
+
+# --- Python ----------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# --- Node / Vite -----------------------------------------------------------------------------
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+.pnpm-store/
+npm-debug.log*
+pnpm-debug.log*
+
+# --- Test and scan output --------------------------------------------------------------------
+junit-*.xml
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.playwright-mcp/
+semgrep.sarif
+*.sarif
+gitleaks-report.json
+# The requirements file `uv export` writes for pip-audit. Derived from uv.lock, never edited.
+requirements-audit.txt
+
+# --- Docker ----------------------------------------------------------------------------------
+docker-compose.override.yml
+
+# --- Local debugging screenshots ---------------------------------------------------------------
+# Captured by hand while chasing specific layout bugs; kept locally, not part of the repo.
+# Delete the line if you want one of them in the history.
+diff-faithfulness.png
+dock-bug.png
+hero-dock-1280x720-fixed.png
+hero-dock-1512x900-fixed.png

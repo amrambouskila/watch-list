@@ -1,0 +1,280 @@
+.route {
+  list-style: none;
+  margin: 0;
+  padding: var(--gap-4) var(--gap-6) var(--gap-7);
+}
+
+.route__entry {
+  position: relative;
+}
+
+/*
+ * Title on the left, metadata pinned right, chevron last. On a wide screen the old stacked
+ * layout left most of the row empty; giving the tags their own column uses that width.
+ */
+.route-row {
+  display: grid;
+  grid-template-columns: var(--rail-width) var(--order-width) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--gap-3);
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--edge);
+}
+
+.route__entry:hover .route-row {
+  background: linear-gradient(90deg, var(--accent-soft), transparent 40%);
+}
+
+/* The rail: a continuous line down the list, lit as far as the last watched entry. */
+.rail {
+  position: relative;
+  z-index: 1;
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  padding-top: 0.15rem;
+}
+
+.route__entry::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--rail-width) / 2);
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--ink-700);
+}
+
+.route__entry[data-reached="true"]::before {
+  width: 2px;
+  background: var(--accent-dim);
+}
+
+.route__entry:first-child::before {
+  top: 1.15rem;
+}
+
+.route__entry:last-child::before {
+  bottom: auto;
+  height: 1.15rem;
+}
+
+.node {
+  position: relative;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-650);
+  background: var(--ink-950);
+  display: grid;
+  place-items: center;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.node:hover {
+  transform: scale(1.15);
+  border-color: var(--accent);
+}
+
+.node[data-status="Watched"] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.node[data-status="In progress"] {
+  border-color: var(--accent);
+  background: linear-gradient(90deg, var(--accent) 50%, var(--ink-950) 50%);
+}
+
+.node[data-status="Skip"] {
+  border-style: dashed;
+  border-color: var(--mist-500);
+  background: var(--ink-850);
+}
+
+.node__mark {
+  width: 0.55rem;
+  height: 0.55rem;
+  color: var(--ink-950);
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.node[data-status="Skip"] .node__mark {
+  color: var(--mist-400);
+}
+
+.route-row__order {
+  font-family: var(--mono);
+  font-size: var(--step-1);
+  font-variant-numeric: tabular-nums;
+  color: var(--mist-500);
+  text-align: right;
+}
+
+.route-row__body {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--gap-2);
+  flex-wrap: wrap;
+}
+
+.route-row__name {
+  font-size: var(--step-3);
+  color: var(--paper);
+}
+
+.route__entry[data-status="Watched"] .route-row__name {
+  color: var(--mist-400);
+}
+
+.route__entry[data-status="Skip"] .route-row__name {
+  color: var(--mist-500);
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-650);
+}
+
+.route-row__unit {
+  font-family: var(--mono);
+  font-size: var(--step-1);
+  color: var(--mist-500);
+}
+
+.route-row__meta {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--gap-2);
+  min-width: 0;
+}
+
+.tag {
+  font-family: var(--mono);
+  font-size: var(--step-0);
+  letter-spacing: 0.04em;
+  color: var(--mist-500);
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  padding: 0 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 22rem;
+}
+
+.route-row__expand {
+  width: 1.6rem;
+  height: 1.6rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius);
+  color: var(--mist-500);
+  transition:
+    color 120ms ease,
+    background 120ms ease,
+    transform 160ms ease;
+}
+
+.route-row__expand:hover {
+  color: var(--paper);
+  background: var(--ink-800);
+}
+
+.route-row__expand[aria-expanded="true"] {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+
+.detail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--gap-3) var(--gap-4);
+  margin: 0 0 var(--gap-3) calc(var(--rail-width) + var(--order-width) + var(--gap-3) * 2);
+  padding: var(--gap-4);
+  border: 1px solid var(--edge);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--ink-900);
+}
+
+.detail__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-1);
+  min-width: 0;
+}
+
+.detail__label {
+  font-family: var(--mono);
+  font-size: var(--step-0);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mist-500);
+}
+
+.detail__footer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--edge);
+  padding-top: var(--gap-3);
+}
+
+.cell-input {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  background: var(--ink-850);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  color: var(--mist-200);
+  resize: vertical;
+  min-height: 2rem;
+  font-size: var(--step-2);
+}
+
+.cell-input:hover {
+  border-color: var(--edge-strong);
+}
+
+.cell-input:focus {
+  border-color: var(--accent);
+  background: var(--ink-800);
+}
+
+/* Below this the row has no spare width, so the tags go back under the title. */
+@media (max-width: 68rem) {
+  .route-row {
+    grid-template-columns: var(--rail-width) var(--order-width) minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .route-row__meta {
+    grid-column: 3 / 4;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    margin-top: 0.2rem;
+  }
+
+  .route-row__expand {
+    grid-row: 1;
+    grid-column: 4;
+  }
+}
+
+@media (max-width: 60rem) {
+  .route {
+    padding-left: var(--gap-3);
+    padding-right: var(--gap-3);
+  }
+
+  .detail {
+    margin-left: 0;
+  }
+}

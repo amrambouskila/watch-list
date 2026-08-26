@@ -1,0 +1,57 @@
+# GitHub's own analysis, alongside the Semgrep job in ci.yml. The two find different things and
+# both report into the repository's Security -> Code scanning tab.
+#
+# As in ci.yml, every `uses:` is pinned to a commit SHA rather than a mutable tag; the comment
+# names the release that SHA belongs to.
+
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Mondays, 04:17 UTC. Off the hour, because everything scheduled on the hour queues together.
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: analyze / ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      # Needed for CodeQL to read the workflow files themselves when `actions` analysis is on.
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript-typescript]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@6f5948dfacef28e207b48d0905cf90c03365536d # v3.37.9
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      # Both languages here are interpreted, so autobuild has nothing to compile and simply
+      # succeeds. It is kept in place so a future compiled component is handled without anyone
+      # having to remember to add it back.
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@6f5948dfacef28e207b48d0905cf90c03365536d # v3.37.9
+
+      - name: Analyse
+        uses: github/codeql-action/analyze@6f5948dfacef28e207b48d0905cf90c03365536d # v3.37.9
+        with:
+          category: /language:${{ matrix.language }}

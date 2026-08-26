@@ -1,0 +1,520 @@
+/* A column of the shell rather than a thing floating over it: nothing is ever under the tab. */
+.chat-launcher {
+  grid-area: 1 / 3;
+  align-self: center;
+  width: 100%;
+  writing-mode: vertical-rl;
+  padding: var(--gap-4) var(--gap-2);
+  border: 1px solid var(--edge-strong);
+  border-right: none;
+  border-radius: var(--radius) 0 0 var(--radius);
+  background: var(--ink-850);
+  color: var(--mist-400);
+  font-family: var(--mono);
+  font-size: var(--step-1);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.chat-launcher:hover {
+  background: var(--ink-800);
+  border-color: var(--accent);
+  color: var(--paper);
+}
+
+.chat-dock {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  width: min(27rem, 100%);
+  background: var(--ink-900);
+  border-left: 1px solid var(--edge-strong);
+  box-shadow: -24px 0 64px rgba(0, 0, 0, 0.5);
+  animation: drawer-in 200ms ease-out;
+  transition: width 200ms ease;
+}
+
+/* A 200-row diff needs the width; a stream of prose does not. */
+.chat-dock--wide {
+  width: min(72rem, 100%);
+}
+
+.chat-dock__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-3);
+  padding: var(--gap-3) var(--gap-4);
+  border-bottom: 1px solid var(--edge);
+}
+
+.chat-dock__cost {
+  margin-left: var(--gap-2);
+  font-size: var(--step-0);
+  color: var(--mist-500);
+}
+
+.chat-dock__actions {
+  display: flex;
+  gap: var(--gap-2);
+}
+
+.chat-dock__log {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gap-3);
+  padding: var(--gap-4);
+}
+
+.chat-dock__empty {
+  margin: 0;
+  font-size: var(--step-2);
+  color: var(--mist-500);
+}
+
+.chat-msg {
+  max-width: 44rem;
+  margin: 0;
+  padding: var(--gap-2) var(--gap-3);
+  border-radius: var(--radius);
+  font-size: var(--step-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-msg--you {
+  align-self: flex-end;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-dim);
+  color: var(--paper);
+}
+
+.chat-msg--claude {
+  background: var(--ink-850);
+  border: 1px solid var(--edge);
+}
+
+.chat-msg--note {
+  align-self: center;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: var(--step-0);
+  letter-spacing: 0.08em;
+  color: var(--mist-500);
+}
+
+.chat-msg--error {
+  background: var(--danger-dim);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+.tool-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gap-2);
+  max-width: 100%;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: var(--ink-850);
+  font-size: var(--step-0);
+  color: var(--mist-500);
+}
+
+.tool-chip__name {
+  font-family: var(--mono);
+  color: var(--accent);
+}
+
+.tool-chip__detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-chip__state {
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tool-chip--escalated {
+  border-color: var(--accent-dim);
+}
+
+.tool-chip--alert {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.tool-chip--alert .tool-chip__name {
+  color: var(--danger);
+}
+
+/* The larger share of a short dock: the transcript above is a log you can scroll back through,
+   this is the thing you have to act on, and its buttons have to be reachable without one. */
+.proposal {
+  flex: 3;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-3);
+  padding: var(--gap-4);
+  border-top: 1px solid var(--edge-strong);
+  background: var(--ink-850);
+  /*
+   * Scrolls rather than slices. Hiding the overflow instead stops a tall child painting over the
+   * composer, but it also cuts the action row off entirely once the dock is short -- and a button
+   * that has been sliced away is worse than one you have to scroll to, because nothing says it is
+   * there. Below roughly a 390px dock this is what still carries Approve within reach.
+   *
+   * Sideways stays hidden, as it was: the diff is what scrolls across, inside itself.
+   */
+  overflow: hidden auto;
+}
+
+/* Everything except the diff keeps its natural height; only the diff gives ground. */
+.proposal__head,
+.proposal__sources,
+.proposal__actions {
+  flex-shrink: 0;
+}
+
+.proposal__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-1);
+}
+
+.proposal__summary {
+  margin: 0;
+  font-size: var(--step-3);
+  color: var(--paper);
+}
+
+.proposal__sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-3);
+  max-height: 4rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--step-0);
+}
+
+/* A cited source can be a 700-character API call; it reads as a chip, not as a paragraph. */
+.proposal__sources li {
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proposal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--gap-2);
+}
+
+/* Artwork sits exactly where the diff sits: the one child of .proposal allowed to give ground, so
+   the action buttons are never pushed out of the dock. */
+.candidates {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: var(--gap-3);
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* No height cap. A card cannot shrink past its picture, its licence and its pick button, so capping
+   it at the row's height does not make it fit -- it makes the button spill past the card and land
+   outside the scroller's clip, unclickable. A row too tall for the space is scrolled, never sliced. */
+.candidate {
+  display: flex;
+  flex: 0 0 13rem;
+  flex-direction: column;
+  gap: var(--gap-2);
+  padding: var(--gap-3);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  background: var(--ink-900);
+}
+
+/* A transparent logo mark can only be judged against the ground the card will actually give it,
+   and the preview is what gives ground first when the dock is short. */
+.candidate__frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 1 7rem;
+  min-height: 2.5rem;
+  padding: var(--gap-2);
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, var(--ink-800), var(--ink-950));
+}
+
+.candidate__image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.candidate__unshowable {
+  font-family: var(--mono);
+  font-size: var(--step-0);
+  color: var(--mist-500);
+  overflow-wrap: anywhere;
+}
+
+/* Model prose is the other thing that gives ground, however long the model made it. */
+.candidate__description {
+  margin: 0;
+  min-height: 0;
+  overflow: hidden;
+  font-size: var(--step-1);
+  color: var(--mist-200);
+}
+
+.candidate__licence {
+  margin: 0;
+  font-size: var(--step-0);
+  color: var(--accent);
+}
+
+.candidate__source {
+  margin: 0;
+  font-size: var(--step-0);
+  color: var(--mist-500);
+  overflow-wrap: anywhere;
+}
+
+/* The one thing in the card that never gives ground: it is the whole point of the card. */
+.candidate__pick {
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+/*
+ * The diff scrolls in both directions inside itself, so the page never scrolls sideways.
+ *
+ * 6rem is what it asks for, not a floor it holds: as the one child of .proposal that gives ground,
+ * refusing to shrink past 6rem only pushed the deficit onto the action row below it. It keeps its
+ * own scrollbar at any height, so giving ground costs a look at the diff and never a button.
+ */
+.diff {
+  flex: 1 1 6rem;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  background: var(--ink-900);
+  --change-add: #7ee2a8;
+  --change-revise: #ffd479;
+  --change-move: var(--accent);
+  --change-remove: var(--danger);
+}
+
+.diff__table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: var(--step-1);
+}
+
+.diff__table th,
+.diff__table td {
+  max-width: 22rem;
+  padding: 0.3rem 0.6rem;
+  border-bottom: 1px solid var(--edge);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diff__table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--ink-850);
+  font-family: var(--mono);
+  font-size: var(--step-0);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--mist-500);
+}
+
+/* One hover band across a wide row keeps the eye on the line while scrolling sideways. */
+.diff__row:hover td {
+  background: var(--ink-850);
+}
+
+.diff__anchor {
+  color: var(--mist-500);
+}
+
+/* What the sheet holds now, set apart from the cells the proposal would write. */
+.diff__standing {
+  color: var(--mist-500);
+}
+
+/*
+ * The text a revise would replace, struck through so the erasure is visible at a glance.
+ *
+ * Capped well inside the cell: the cell itself ellipsises, and what has to survive that is the
+ * value being written, which follows. A long replaced note must not push the outcome out of sight.
+ */
+.diff__replaced {
+  display: inline-block;
+  max-width: 45%;
+  overflow: hidden;
+  vertical-align: bottom;
+  color: var(--mist-500);
+  text-decoration: line-through;
+  text-overflow: ellipsis;
+}
+
+.diff__reason {
+  color: var(--mist-500);
+  font-style: italic;
+}
+
+.diff__badge {
+  display: inline-block;
+  padding: 0 0.4rem;
+  border: 1px solid currentcolor;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: var(--step-0);
+  letter-spacing: 0.06em;
+}
+
+.diff__badge--add {
+  color: var(--change-add);
+}
+
+.diff__badge--revise {
+  color: var(--change-revise);
+}
+
+.diff__badge--move {
+  color: var(--change-move);
+}
+
+.diff__badge--remove {
+  color: var(--change-remove);
+}
+
+.diff__row--remove .diff__anchor {
+  color: var(--change-remove);
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-2);
+  padding: var(--gap-3) var(--gap-4);
+  border-top: 1px solid var(--edge);
+}
+
+.composer__field {
+  resize: none;
+}
+
+.composer__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-3);
+}
+
+.composer__hint {
+  font-family: var(--mono);
+  font-size: var(--step-0);
+  color: var(--mist-500);
+}
+
+@media (max-width: 60rem) {
+  .chat-launcher {
+    grid-area: 1 / 2 / 3 / 3;
+  }
+
+  .chat-dock,
+  .chat-dock--wide {
+    width: 100%;
+  }
+}
+
+/* Natural height, like every other child of .proposal except the scroller: the candidates below are
+   the one thing allowed to give ground, so this stays as short as a legible thumbnail permits. */
+.hero-target {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-3);
+  padding: var(--gap-2);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  background: var(--ink-900);
+}
+
+/* The card's own proportions in miniature, so what is on screen is what a pick would repaint. */
+.hero-target__frame {
+  position: relative;
+  flex: 0 0 auto;
+  width: 4.5rem;
+  height: 2.5rem;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--ink-950);
+}
+
+.hero-target__frame .hero__art,
+.hero-target__frame .hero__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-target__frame .hero__logo {
+  position: absolute;
+  top: 12%;
+  left: 12%;
+  width: 76%;
+  height: 76%;
+  object-fit: contain;
+}
+
+.hero-target__naming {
+  min-width: 0;
+}
+
+.hero-target__name {
+  margin: 0;
+  font-size: var(--step-2);
+  font-weight: 600;
+  color: var(--paper);
+  overflow-wrap: anywhere;
+}
+
+.hero-target__id,
+.hero-target__empty {
+  margin: 0;
+  font-size: var(--step-0);
+  color: var(--mist-500);
+  overflow-wrap: anywhere;
+}
