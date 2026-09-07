@@ -30,3 +30,4 @@ changes its id, so rename the image to match.
 | Yu Gi Oh | Yu-Gi-Oh!.png | Public domain | https://commons.wikimedia.org/wiki/File:Yu-Gi-Oh!.png |
 | WWII_Chronological_Master_Watch_Order_Master_Watch_Order | Raising the Flag on Iwo Jima by Joe Rosenthal.jpg | Public domain (PD-US, copyright not renewed) | https://commons.wikimedia.org/wiki/File:Raising_the_Flag_on_Iwo_Jima_by_Joe_Rosenthal.jpg |
 | Miscellaneous_Movies_Master_Watch_Order | Imdb logo som.png | Public domain (PD-textlogo) | https://commons.wikimedia.org/wiki/File:Imdb_logo_som.png |
+| Misc_TV | Anthropomorphic Popcorn Bucket Cartoon Character Illustration.png | CC0 1.0 (own work, uploader Ool570133) | https://commons.wikimedia.org/wiki/File:Anthropomorphic_Popcorn_Bucket_Cartoon_Character_Illustration.png |

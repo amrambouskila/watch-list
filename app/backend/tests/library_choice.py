@@ -78,11 +78,13 @@ def _is_an_ordinary_editable_category(facts: WorkbookFacts) -> bool:
         and bool(facts.free_text_keys)
         and facts.ranges_all_end_together
         and facts.row_count >= ROWS_ENOUGH_TO_REORDER
+        and bool(facts.rows_a_deletion_at_the_top_would_retitle)
     )
 
 
 def a_category() -> WorkbookFacts:
-    """The default subject: nothing marked yet, a free-text column, and depth to reorder."""
+    """The default subject: nothing marked yet, a free-text column, depth to reorder, and a row a
+    deletion above would retitle."""
     return _shallowest("an unmarked, reorderable category", _is_an_ordinary_editable_category)
 
 

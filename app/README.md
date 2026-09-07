@@ -38,7 +38,7 @@ categories from anywhere; the wordmark goes back to the cards.
 
 The app reads the **first sheet** of each file, whatever it is called, finds its `Title` and
 `Watched?` columns from the header row, and treats every other column as metadata. Nothing
-about the column layout is hard-coded, which is why eighteen workbooks with eight to twelve
+about the column layout is hard-coded, which is why nineteen workbooks with eight to twelve
 different columns all work.
 
 - **Adding a category** — drop any `.xlsx` into the folder and it appears next time the app

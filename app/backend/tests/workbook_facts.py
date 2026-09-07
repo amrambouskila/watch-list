@@ -38,6 +38,7 @@ class WorkbookFacts:
     range_ends: tuple[int, ...]
     grid_table_name: str
     column_indexes: tuple[tuple[str, int], ...]
+    titles: tuple[str, ...]
 
     def index_of(self, key: str) -> int:
         """Which sheet column a derived column key sits in."""
@@ -84,6 +85,22 @@ class WorkbookFacts:
     def is_unmarked(self) -> bool:
         """True when no row carries a watch status yet, so a test's own mark is the only one."""
         return self.marked_row_count == 0
+
+    @property
+    def rows_a_deletion_at_the_top_would_retitle(self) -> tuple[int, ...]:
+        """
+        Row numbers that name a different title once the first data row is deleted.
+
+        Deleting the top row lifts every row below it by one, so these are the rows holding a
+        different title from the row beneath. A title repeats freely - a season-per-row workbook
+        names the same show a dozen times over - so no fixed row number holds across the library.
+        The top row itself is excluded: it is the one being deleted, not one shifted under it.
+        """
+        return tuple(
+            FIRST_DATA_ROW + offset
+            for offset in range(1, len(self.titles) - 1)
+            if self.titles[offset] != self.titles[offset + 1]
+        )
 
     def copied_into(self, library: Path) -> Path:
         """This same workbook inside a disposable copy of the library."""
@@ -143,4 +160,5 @@ def read_facts(path: Path) -> WorkbookFacts:
         range_ends=range_ends(sheet),
         grid_table_name=grid_table_name(sheet),
         column_indexes=indexes,
+        titles=tuple(row.cells.get(_key_for_role(detail, "title"), "") for row in detail.rows),
     )

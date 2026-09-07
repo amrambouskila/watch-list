@@ -79,8 +79,8 @@ HERO_CANDIDATES = [
     },
 ]
 HERO_BODY = {"kind": "hero", "category_id": CATEGORY.category_id, "candidates": HERO_CANDIDATES}
-# Far enough down the sheet that deleting the first data row puts a different title here.
-SHIFTED_ROW = 5
+# A row deleting the first data row puts a different title into, whichever workbook is the subject.
+SHIFTED_ROW = CATEGORY.rows_a_deletion_at_the_top_would_retitle[0]
 REQUEST = "build me a chronological wartime list"
 SEARCH_NOTE = "Searching for chronological wartime film lists."
 BUILT_CATEGORY_NAME = a_name_the_library_does_not_hold("Wartime Films")

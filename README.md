@@ -4,10 +4,10 @@
 [![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/OWNER/REPO/actions/workflows/codeql.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/codeql.yml)
 
-A local web app for eighteen hand-curated watch orders — Marvel, DCU, Star Wars, Middle Earth, a
+A local web app for nineteen hand-curated watch orders — Marvel, DCU, Star Wars, Middle Earth, a
 WWII chronology, and a shelf of anime — that live as Excel workbooks and stay that way.
 
-**There is no database.** The eighteen `.xlsx` files in this repository's root *are* the data. The
+**There is no database.** The nineteen `.xlsx` files in this repository's root *are* the data. The
 app reads them with openpyxl and writes edits straight back into the same sheets, preserving each
 workbook's table, dropdowns and conditional formatting, so opening one in Excel afterwards shows
 exactly what you did in the browser. That is why the workbooks are committed here: a clone arrives
@@ -68,7 +68,7 @@ The workbooks travel; the toolchain does not. Install these first, on whichever 
 | | Why | Install |
 |---|---|---|
 | **uv** | runs the backend and owns its Python 3.13 | <https://docs.astral.sh/uv/getting-started/installation/> |
-| **Node 20+ and pnpm** | run the frontend | <https://nodejs.org> then `npm i -g pnpm@9` |
+| **Node 20+ and pnpm 9.15.9** | run the frontend | <https://nodejs.org> then `corepack enable` — `app/frontend/package.json` pins `pnpm@9.15.9`, the version CI and the Docker image use, and corepack fetches and runs exactly that. |
 | **`claude` on PATH** | chat shells out to it | `npm i -g @anthropic-ai/claude-code` |
 | **Playwright's Chromium** | chat reads bot-blocked pages with it; the layout guard needs it too | see below |
 
@@ -99,6 +99,15 @@ chmod +x run_tv.sh      # only if your clone lost the executable bit
 
 Either launcher installs both halves on first run, starts the two servers, and then sits on a menu:
 `[r]` restarts both, `[k]` stops and exits.
+
+Both servers run in the terminal you launched from; neither launcher opens a second window.
+`run_tv.bat` additionally tags every line `[backend]` or `[frontend]`, so two interleaved logs stay
+tellable apart. That costs a little machinery, documented in the file itself: each server goes
+through a PowerShell pipeline that adds the prefix, which in turn needs `CI=1` for the frontend so
+Vite does not bind its own `r`/`q` keys and fight the menu for keystrokes, `PYTHONUNBUFFERED=1` so
+uvicorn's access log is not block-buffered once its stdout is a pipe, and UTF-8 pinned for the
+duration so Vite's box-drawing survives the pipe. `run_tv.sh` backgrounds both with `&` and does
+not prefix them yet, so on macOS the two logs still interleave unlabelled.
 
 | | |
 |---|---|
