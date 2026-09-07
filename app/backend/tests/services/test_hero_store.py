@@ -14,21 +14,42 @@ import pytest
 from mock_responder import MockResponder
 from sample_images import GIF89, HTML_PAGE, JPEG, PNG, SVG_DOCUMENT, WEBP
 
-from library_choice import a_category, another_category
+from library_choice import ordinary_editable_categories
 from tv_watchlist.agent.errors import BlockedUrlError, HeroDownloadError, UnsafeHeroPathError, UnsupportedImageError
 from tv_watchlist.config import Settings
 from tv_watchlist.constants import HERO_ATTRIBUTION_FILENAME, HERO_SUFFIXES, MAX_HERO_BYTES
 from tv_watchlist.models.category_detail import CategoryDetail
 from tv_watchlist.models.hero_candidate import HeroCandidate
 from tv_watchlist.services import hero_backup
+from tv_watchlist.services.attribution import CELL_SEPARATOR, ROW_OPEN, TABLE_HEADER
 from tv_watchlist.services.catalog import Catalog
 from tv_watchlist.services.hero_store import HeroStore
 from tv_watchlist.workbook.errors import CategoryNotFoundError
 
 CURATED = Path(__file__).resolve().parents[3] / "heroes" / HERO_ATTRIBUTION_FILENAME
-# Whichever category the library offers first by shape; the store only ever sees its id.
-CATEGORY = a_category().category_id
-CATEGORY_NAME = a_category().stem
+
+
+def _already_credited() -> set[str]:
+    """The name each row of the curated table files its artwork under: the row's first cell."""
+    return {
+        line.removeprefix(ROW_OPEN).split(CELL_SEPARATOR)[0]
+        for line in CURATED.read_text(encoding="utf-8").splitlines()
+        if line.startswith(ROW_OPEN) and line != TABLE_HEADER
+    }
+
+
+# `credit_hero_row` supersedes a row it already wrote for a category rather than adding a second, so
+# a subject the owner has since given artwork to would drive the replace path through tests written
+# for the first-credit one. Both subjects are drawn from the same narrowed list, so the second is a
+# different workbook from the first however the library grows.
+_SUBJECTS = ordinary_editable_categories(lambda facts: facts.stem not in _already_credited())
+if len(_SUBJECTS) < 2:
+    raise AssertionError(
+        "this file needs two categories the curated table credits nothing for yet, and the library "
+        "now offers fewer than two; every remaining candidate has been given artwork through the app"
+    )
+CATEGORY = _SUBJECTS[0].category_id
+CATEGORY_NAME = _SUBJECTS[0].stem
 SOURCE_FILE = "Series logo.svg"
 CREDIT_PAGE = "https://commons.wikimedia.org/wiki/File:Series_logo.svg"
 PUBLIC_IMAGE_URL = "https://93.184.216.34/wikipedia/commons/6/6c/Series_logo.png"
@@ -471,7 +492,7 @@ async def test_two_picks_at_once_credit_the_category_exactly_once(catalog: Catal
 
 async def test_picks_for_two_categories_at_once_leave_both_credited(catalog: Catalog, settings: Settings) -> None:
     a_credit_table(settings)
-    other = another_category()
+    other = _SUBJECTS[1]
     store, _ = a_store(catalog, settings, httpx.Response(200, content=PNG), httpx.Response(200, content=JPEG))
 
     await asyncio.gather(store.save(CATEGORY, CANDIDATE), store.save(other.category_id, CANDIDATE))

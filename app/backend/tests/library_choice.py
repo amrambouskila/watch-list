@@ -88,6 +88,20 @@ def a_category() -> WorkbookFacts:
     return _shallowest("an unmarked, reorderable category", _is_an_ordinary_editable_category)
 
 
+def ordinary_editable_categories(matching: Property) -> list[WorkbookFacts]:
+    """
+    Every ordinary editable category that also matches `matching`, shallowest first.
+
+    For a test file needing more of its subject than `a_category` promises, and needing any second
+    subject narrowed the same way - drawing the second from `another_category` instead can hand back
+    the very workbook the extra property just steered the first one away from.
+    """
+    return sorted(
+        (facts for facts in every_workbook() if _is_an_ordinary_editable_category(facts) and matching(facts)),
+        key=lambda facts: (facts.row_count, facts.column_count, facts.file_name),
+    )
+
+
 def another_category() -> WorkbookFacts:
     """A second category, distinct from the first and stamped at a different time."""
     first = a_category()
