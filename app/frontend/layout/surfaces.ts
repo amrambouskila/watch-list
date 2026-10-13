@@ -16,7 +16,12 @@ export type SurfaceName =
   | "hero-proposal"
   | "home-with-files-it-cannot-open"
   | "home-with-a-shadowed-file"
-  | "category-excel-is-holding";
+  | "category-excel-is-holding"
+  | "unresolved-view"
+  | "category-with-a-playable-entry"
+  | "player-overlay"
+  | "player-with-pending-save"
+  | "closed-player-with-pending-save";
 
 /** One screen the guard drives the real app into, and the part of it whose controls must work. */
 export interface SurfaceSpec {
@@ -38,8 +43,22 @@ export interface SurfaceSpec {
 }
 
 const A_CATEGORY = "A Long Watch Order";
+/**
+ * The metadata providers' links, which the sidebar foot carries on every screen the shell holds.
+ *
+ * They are a licence obligation rather than a convenience, so a foot pushed below the fold is not a
+ * cosmetic loss — and the foot is exactly where the stacked shell at the breakpoint would push it.
+ */
+const THE_ATTRIBUTION = ["TMDB", "thetvdb.com"];
 /** Every control the cards wall promises, whatever else the library made it print underneath. */
-const THE_WALL = ["Watch List", "Find a category", "Search categories", "New category", "Ask Claude"];
+const THE_WALL = [
+  "Watch List",
+  "Find a category",
+  "Search categories",
+  "New category",
+  "Ask Claude",
+  ...THE_ATTRIBUTION,
+];
 /** Every control an open category promises, whatever else the stage had to make room for. */
 const THE_CATEGORY = [
   "All categories",
@@ -49,6 +68,13 @@ const THE_CATEGORY = [
   "Sheet notes",
   "Delete entry",
 ];
+/**
+ * Every control the review queue promises: the nav entry that reaches it, and one row's two decisions.
+ *
+ * Both decisions are measured per row rather than once, because the note above them is free text of
+ * whatever length the resolver wrote and it is the row's own controls it would push down.
+ */
+const THE_UNRESOLVED_VIEW = ["Needs review", "Confirm", "Retry resolution", ...THE_ATTRIBUTION];
 const THE_SHELL = ".shell";
 const THE_STAGE = ".stage";
 const A_DIALOG = ".dialog";
@@ -56,6 +82,30 @@ const THE_DRAWER = ".drawer";
 const THE_DOCK = ".chat-dock";
 
 export const SURFACES: readonly SurfaceSpec[] = [
+  {
+    name: "player-with-pending-save",
+    root: ".player",
+    expects: ["Close player", "Choose a playback item", "Video for The Long Way Round, Part 1"],
+    withToast: true,
+  },
+  {
+    name: "closed-player-with-pending-save",
+    root: ".toasts",
+    expects: ["Retry save", "Dismiss"],
+    withToast: true,
+  },
+  {
+    name: "category-with-a-playable-entry",
+    root: THE_STAGE,
+    expects: [...THE_CATEGORY, "Play The Long Way Round, Part 1"],
+    withToast: false,
+  },
+  {
+    name: "player-overlay",
+    root: ".player",
+    expects: ["Close player", "Choose a playback item", "Video for The Long Way Round, Part 1"],
+    withToast: false,
+  },
   {
     name: "home",
     root: THE_SHELL,
@@ -167,6 +217,14 @@ export const SURFACES: readonly SurfaceSpec[] = [
     name: "category-excel-is-holding",
     root: THE_STAGE,
     expects: THE_CATEGORY,
+    withToast: false,
+  },
+  {
+    // The shell rather than the stage: the nav entry that reaches this screen is in the sidebar, and a
+    // queue nothing can navigate to is a queue nobody works down.
+    name: "unresolved-view",
+    root: THE_SHELL,
+    expects: THE_UNRESOLVED_VIEW,
     withToast: false,
   },
 ];

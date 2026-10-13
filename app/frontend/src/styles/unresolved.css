@@ -1,0 +1,95 @@
+/* The review queue: one screen of rows a heuristic could not settle, across every category at once. */
+
+.unresolved__list {
+  list-style: none;
+  margin: 0;
+  /* The same gutters the cards wall keeps, and the same room under the last row to scroll clear. */
+  padding: var(--gap-2) var(--gap-6) var(--gap-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-3);
+}
+
+.unresolved__row {
+  padding: var(--gap-3) var(--gap-4);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-lg);
+  background: var(--ink-900);
+}
+
+.unresolved__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gap-2);
+}
+
+.unresolved__position {
+  min-width: var(--order-width);
+  font-size: var(--step-2);
+  color: var(--mist-500);
+}
+
+/* The workbook the row came from, beside its position: the queue spans all nineteen of them. */
+.unresolved__category {
+  font-family: var(--mono);
+  font-size: var(--step-1);
+  color: var(--mist-500);
+  overflow-wrap: anywhere;
+}
+
+.unresolved__state {
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: var(--step-0);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.unresolved__confidence {
+  font-size: var(--step-1);
+  color: var(--mist-400);
+}
+
+.unresolved__cells {
+  margin: var(--gap-3) 0 0;
+  display: grid;
+  /* Wide enough for a whole sheet cell, and a column count the window rather than the sheet decides. */
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: var(--gap-2) var(--gap-4);
+}
+
+.unresolved__cell dt {
+  margin: 0;
+}
+
+.unresolved__cell dd {
+  margin: 0;
+  font-size: var(--step-3);
+  color: var(--paper);
+  /* A sheet cell holds up to 2000 characters, and a long one wraps rather than widening the row. */
+  overflow-wrap: anywhere;
+}
+
+.unresolved__note {
+  margin: var(--gap-3) 0 0;
+  font-size: var(--step-2);
+  color: var(--mist-400);
+  overflow-wrap: anywhere;
+}
+
+.unresolved__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-2);
+  margin-top: var(--gap-3);
+}
+
+@media (max-width: 60rem) {
+  .unresolved__list {
+    padding-left: var(--gap-3);
+    padding-right: var(--gap-3);
+  }
+}

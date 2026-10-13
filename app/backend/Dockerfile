@@ -46,6 +46,17 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     && find /srv/app/backend/.venv -type f -path '*/claude_agent_sdk/_bundled/claude*' -delete
 
 COPY src ./src
+
+# Alembic, the resolver's seed data and the entrypoint ride in the same layer as the source: the
+# runtime stage copies the whole /srv/app/backend tree, and the entrypoint runs `alembic upgrade head`
+# from it before uvicorn. data/franchise_prefixes.json is read at runtime by
+# src/tv_watchlist/resolver/franchise.py (parents[3] / data), which raises if the file is absent.
+COPY alembic.ini ./alembic.ini
+COPY alembic ./alembic
+COPY data ./data
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod 0755 ./docker-entrypoint.sh
+
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
@@ -96,4 +107,6 @@ USER watcher
 
 EXPOSE 8284
 
-CMD ["uvicorn", "tv_watchlist.main:app", "--host", "0.0.0.0", "--port", "8284"]
+# `alembic upgrade head`, then `exec uvicorn`. Never uvicorn directly: the schema has to exist before
+# the app that queries it starts.
+CMD ["/srv/app/backend/docker-entrypoint.sh"]

@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------------------------
 # The workbooks ARE the database.
 #
-# The eighteen *.xlsx files at the repo root and the artwork in app/heroes/ are COMMITTED ON
+# The nineteen *.xlsx files at the repo root and the artwork in app/heroes/ are COMMITTED ON
 # PURPOSE. That is the whole point of this repo being portable: a clone arrives with the library
 # already in it and there is nothing to migrate or import. Do not add *.xlsx to this file.
 # ---------------------------------------------------------------------------------------------
@@ -80,6 +80,12 @@ requirements-audit.txt
 
 # --- Docker ----------------------------------------------------------------------------------
 docker-compose.override.yml
+
+# --- Local media (Jellyfin bind-mount placeholder) -------------------------------------------
+# docker-compose.yml mounts ${TV_JELLYFIN_MEDIA_HOST:-./media} into the jellyfin service. The real
+# media directory is named in .env; this placeholder only exists so the compose file validates.
+# Video files are never part of the repository.
+/media/
 
 # --- Local debugging screenshots ---------------------------------------------------------------
 # Captured by hand while chasing specific layout bugs; kept locally, not part of the repo.

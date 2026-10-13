@@ -1,4 +1,5 @@
-# The build needs pyproject.toml, uv.lock and src/. Nothing else.
+# The build needs pyproject.toml, uv.lock, src/, alembic.ini, alembic/, data/ and
+# docker-entrypoint.sh. Nothing else.
 .venv/
 **/__pycache__/
 **/*.py[cod]

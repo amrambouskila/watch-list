@@ -200,6 +200,31 @@ jobs:
     defaults:
       run:
         working-directory: app/backend
+    # A real Postgres 16, never a mock (CLAUDE.md section 16.4). Published on 5525 so the job's env matches
+    # the compose file and a workstation run byte for byte.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: tv_test
+          POSTGRES_USER: tv
+          POSTGRES_PASSWORD: tv
+        ports:
+          - 5525:5432
+        options: >-
+          --health-cmd "pg_isready -U tv -d tv_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TV_POSTGRES_HOST: localhost
+      TV_POSTGRES_PORT: "5525"
+      TV_POSTGRES_DB: tv_test
+      TV_POSTGRES_USER: tv
+      TV_POSTGRES_PASSWORD: tv
+      # The data suite skips itself when nothing answers. Here that would be a mis-wired service container
+      # turning eleven tables' worth of tests into silence, so the skip becomes a failure instead.
+      TV_REQUIRE_POSTGRES: "1"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
@@ -208,6 +233,9 @@ jobs:
           cache-dependency-glob: app/backend/uv.lock
       - name: Install
         run: uv sync --frozen --group dev
+      - name: Alembic round trip
+        # The gate in docs/TV_MASTER_PLAN.md 10.1: up, all the way down, up again - views and trigger included.
+        run: uv run alembic upgrade head && uv run alembic downgrade base && uv run alembic upgrade head
       - name: pytest
         # The suite copies the committed workbooks into a tmp directory per test, so it runs
         # against the real library without ever writing to it.

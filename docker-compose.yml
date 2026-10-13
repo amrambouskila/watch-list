@@ -1,7 +1,10 @@
-# The whole app in two containers. Compose v2 syntax - no top-level `version:` key.
+# The whole app in containers. Compose v2 syntax - no top-level `version:` key.
 #
 #   docker compose up --build -d      start
 #   docker compose down               stop
+#
+# Services: backend (FastAPI), frontend (nginx), postgres (the Phase 1 projection, ADR-001), jellyfin (the
+# owner's own media server, Phase 3; ADR-014).
 #
 # The library is bind-mounted, not copied: the containers read and write the very same workbooks
 # a clone arrives with, so nothing has to be exported back out afterwards.
@@ -30,13 +33,30 @@ services:
       # Used solely to build the CORS allowlist. The browser talks to nginx, same-origin, so this
       # matters only if you point a browser straight at the published backend port.
       TV_FRONTEND_PORT: "${TV_FRONTEND_PORT:-5284}"
+      # Inside the compose network Jellyfin is reached by service name, never by the host port.
+      # The host launchers read http://localhost:8096 from the root .env instead. The API key is
+      # deliberately NOT set here: it comes from the root .env, which compose reads for substitution.
+      TV_JELLYFIN_BASE_URL: "http://jellyfin:8096"
+      TV_JELLYFIN_API_KEY: "${TV_JELLYFIN_API_KEY:-}"
+      # Postgres, Phase 1. Inside the compose network the backend reaches the service by name on the
+      # container's own 5432; 5525 is only the HOST publication on the postgres service below.
+      TV_POSTGRES_HOST: postgres
+      TV_POSTGRES_PORT: "5432"
+      TV_POSTGRES_DB: "${TV_POSTGRES_DB:-tv}"
+      TV_POSTGRES_USER: "${TV_POSTGRES_USER:-tv}"
+      TV_POSTGRES_PASSWORD: "${TV_POSTGRES_PASSWORD:-tv}"
     volumes:
-      # The repo root IS the library: the 18 workbooks, app/heroes for artwork, app/.backups for
+      # The repo root IS the library: the 19 workbooks, app/heroes for artwork, app/.backups for
       # the pre-write snapshots. Point TV_LIBRARY_HOST somewhere else to run the containers
       # against a copy instead of against the real thing.
       - "${TV_LIBRARY_HOST:-.}:/library"
     ports:
       - "${TV_BACKEND_PORT:-8284}:8284"
+    depends_on:
+      # The entrypoint runs `alembic upgrade head` before uvicorn; waiting on health is what makes that
+      # safe. A bare depends_on list is not sufficient and is forbidden by the global contract.
+      postgres:
+        condition: service_healthy
     healthcheck:
       # /openapi.json is served by FastAPI itself and touches no workbook, so a health probe every
       # 15s does not re-read the library.
@@ -68,3 +88,61 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  postgres:
+    # The Phase 1 projection. Derived from the workbooks, never authoritative for order (ADR-001).
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${TV_POSTGRES_DB:-tv}"
+      POSTGRES_USER: "${TV_POSTGRES_USER:-tv}"
+      POSTGRES_PASSWORD: "${TV_POSTGRES_PASSWORD:-tv}"
+    volumes:
+      - tv_postgres_data:/var/lib/postgresql/data
+    ports:
+      # 5525 is this project's reserved slot in the 5520-5591 range (PORT_ASSIGNMENTS.md). Never host
+      # 5432 - that is the machine's single shared local PostgreSQL listener, for client connections only.
+      # Bound to 127.0.0.1 explicitly: every listener in this project is loopback-only, and the default
+      # credentials are tv/tv, so an all-interfaces bind would put a trivially-guessable database on the
+      # network. The host side is published at all only so the launchers' host-native backend can reach it.
+      - "127.0.0.1:${TV_POSTGRES_PORT:-5525}:5432"
+    healthcheck:
+      # CMD-SHELL, because `pg_isready -U ${...}` needs substitution; the backend probe stays exec-form
+      # on /openapi.json and must never be pointed at anything that touches Postgres.
+      test: ["CMD-SHELL", "pg_isready -U ${TV_POSTGRES_USER:-tv} -d ${TV_POSTGRES_DB:-tv}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  jellyfin:
+    # The owner's own media server, indexing the owner's own files (ADR-013, ADR-014). Pinned to the
+    # release this project targets - 12.1, stable 2026-09-15 - never `latest`, so the API the backend
+    # client is written against does not move underneath it.
+    image: jellyfin/jellyfin:12.1
+    restart: unless-stopped
+    volumes:
+      - tv_jellyfin_config:/config
+      - tv_jellyfin_cache:/cache
+      # The media directory. Read-only: this app never writes a video file. Set TV_JELLYFIN_MEDIA_HOST
+      # in the root .env to the directory that actually holds the files; ./media is a gitignored
+      # placeholder so the file validates without one.
+      - "${TV_JELLYFIN_MEDIA_HOST:-./media}:/media:ro"
+    ports:
+      # 8096 is Jellyfin's canonical port, registered for this project in PORT_ASSIGNMENTS.md. It is
+      # the second and last host port this project allocates beyond its three live ones (5525 is the
+      # other, for Postgres).
+      - "${TV_JELLYFIN_PORT:-8096}:8096"
+    # No service depends on jellyfin, deliberately: it is an optional peer. The backend boots and
+    # serves the workbooks when it is absent, exactly as it boots without provider credentials.
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8096/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  tv_postgres_data:
+  tv_jellyfin_config:
+  tv_jellyfin_cache:

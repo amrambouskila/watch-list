@@ -21,8 +21,12 @@ from tv_watchlist.workbook.heroes import artwork_key
 from tv_watchlist.workbook.locking import lock_for
 
 
-async def _read_capped(response: httpx.Response, url: str) -> bytes:
-    """The whole body, refused rather than truncated once it passes what a card image may weigh."""
+async def read_capped(response: httpx.Response, url: str) -> bytes:
+    """The whole body, refused rather than truncated once it passes what a card image may weigh.
+
+    Public because the TMDB artwork cache reads through this same reader rather than standing up a
+    second one: one size cap, one refusal, one place to change either (CLAUDE.md section 10.3, B11).
+    """
     body = bytearray()
     async for chunk in response.aiter_bytes():
         body.extend(chunk)
@@ -73,7 +77,7 @@ class HeroStore:
                 async with client.stream("GET", url) as response:
                     if not response.is_success:
                         raise HeroDownloadError(f"{url} answered {response.status_code}")
-                    return await _read_capped(response, url)
+                    return await read_capped(response, url)
             # `InvalidURL` is raised while building the request and is not an `HTTPError`, so a URL
             # httpx itself refuses would otherwise leave this call as an unhandled crash.
             except (httpx.HTTPError, httpx.InvalidURL) as error:

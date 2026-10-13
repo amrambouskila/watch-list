@@ -1,0 +1,31 @@
+{
+  "Items": [
+    {
+      "Name": "One Piece",
+      "Id": "5c1d3f2a4b6e47d8a9f0c1b2d3e4f5a6",
+      "Path": "/media/anime/One Piece",
+      "ProductionYear": 1999,
+      "ProviderIds": {
+        "Tmdb": "37854",
+        "Tvdb": "81797",
+        "Imdb": "tt0388629"
+      },
+      "Type": "Series",
+      "MediaType": "Unknown"
+    },
+    {
+      "Name": "Attack on Titan",
+      "Id": "7e2a9b4c1d3f48a6b5c7d9e0f1a2b3c4",
+      "Path": "/media/anime/Attack on Titan",
+      "ProductionYear": 2013,
+      "ProviderIds": {
+        "Tmdb": "1429",
+        "Tvdb": "267440"
+      },
+      "Type": "Series",
+      "MediaType": "Unknown"
+    }
+  ],
+  "TotalRecordCount": 3,
+  "StartIndex": 0
+}

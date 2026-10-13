@@ -12,7 +12,7 @@ const A_REASON =
 export function aLibraryWithFilesItCannotOpen(): ProbeLibrary {
   const library = aProbeLibrary();
   return {
-    detail: library.detail,
+    ...library,
     listing: {
       ...library.listing,
       unreadable: [

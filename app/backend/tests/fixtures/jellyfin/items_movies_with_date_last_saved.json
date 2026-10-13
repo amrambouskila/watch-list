@@ -1,0 +1,18 @@
+{
+  "Items": [
+    {
+      "Name": "Iron Man",
+      "Id": "0a1b2c3d4e5f6071829304a5b6c7d8e9",
+      "Path": "/media/movies/Marvel/Iron Man (2008)/Iron Man (2008) Bluray-1080p.mkv",
+      "RunTimeTicks": 75600000000,
+      "ProviderIds": {
+        "Tmdb": "1726"
+      },
+      "DateLastSaved": "2026-09-19T21:14:07.1234567Z",
+      "Type": "Movie",
+      "MediaType": "Video"
+    }
+  ],
+  "TotalRecordCount": 1,
+  "StartIndex": 0
+}

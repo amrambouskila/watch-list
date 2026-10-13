@@ -1,0 +1,47 @@
+{
+  "Items": [
+    {
+      "Name": "I'm Luffy! The Man Who Will Become the Pirate King!",
+      "Id": "3d4e5f60718293a4b5c6d7e8f9012345",
+      "Path": "/media/anime/One Piece/Season 01/One Piece - S01E01 - I'm Luffy.mkv",
+      "RunTimeTicks": 14400000000,
+      "IndexNumber": 1,
+      "ParentIndexNumber": 1,
+      "SeriesName": "One Piece",
+      "SeriesId": "5c1d3f2a4b6e47d8a9f0c1b2d3e4f5a6",
+      "ProviderIds": {
+        "Tvdb": "41511"
+      },
+      "Type": "Episode",
+      "MediaType": "Video"
+    },
+    {
+      "Name": "Enter the Great Swordsman! Pirate Hunter Roronoa Zoro!",
+      "Id": "4e5f60718293a4b5c6d7e8f901234567",
+      "Path": "/media/anime/One Piece/Season 01/One Piece - S01E02 - Enter the Great Swordsman.mkv",
+      "RunTimeTicks": 14400000000,
+      "IndexNumber": 2,
+      "ParentIndexNumber": 1,
+      "SeriesName": "One Piece",
+      "SeriesId": "5c1d3f2a4b6e47d8a9f0c1b2d3e4f5a6",
+      "ProviderIds": {},
+      "Type": "Episode",
+      "MediaType": "Video"
+    },
+    {
+      "Name": "Morgan versus Luffy! Who's This Beautiful Young Girl?",
+      "Id": "5f60718293a4b5c6d7e8f90123456789",
+      "Path": "/media/anime/One Piece/Season 01/One Piece - S01E03-E04 - Morgan versus Luffy.mkv",
+      "RunTimeTicks": 28800000000,
+      "IndexNumber": 3,
+      "IndexNumberEnd": 4,
+      "ParentIndexNumber": 1,
+      "SeriesName": "One Piece",
+      "SeriesId": "5c1d3f2a4b6e47d8a9f0c1b2d3e4f5a6",
+      "Type": "Episode",
+      "MediaType": "Video"
+    }
+  ],
+  "TotalRecordCount": 3,
+  "StartIndex": 0
+}

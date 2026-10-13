@@ -1,1 +1,1 @@
-export type AppView = "home" | "category";
+export type AppView = "home" | "category" | "unresolved";

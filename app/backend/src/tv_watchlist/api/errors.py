@@ -17,6 +17,17 @@ from tv_watchlist.agent.errors import (
     UnknownProposalError,
     UnknownSessionError,
 )
+from tv_watchlist.data.errors import (
+    EntryNotFoundError,
+    JellyfinUnavailableError,
+    PlaybackItemNotFoundError,
+    PlaybackRangeError,
+    PlaybackStateError,
+    PlaybackUpstreamError,
+    ProjectionError,
+    ResolutionConflictError,
+    WatchSubjectNotFoundError,
+)
 from tv_watchlist.workbook.errors import (
     CategoryNotFoundError,
     DuplicateCategoryError,
@@ -43,6 +54,14 @@ _STATUS_BY_ERROR: dict[type[Exception], int] = {
     CLINotFoundError: status.HTTP_503_SERVICE_UNAVAILABLE,
     UnknownSessionError: status.HTTP_404_NOT_FOUND,
     UnknownProposalError: status.HTTP_404_NOT_FOUND,
+    EntryNotFoundError: status.HTTP_404_NOT_FOUND,
+    ResolutionConflictError: status.HTTP_409_CONFLICT,
+    WatchSubjectNotFoundError: status.HTTP_404_NOT_FOUND,
+    JellyfinUnavailableError: status.HTTP_503_SERVICE_UNAVAILABLE,
+    PlaybackItemNotFoundError: status.HTTP_404_NOT_FOUND,
+    PlaybackRangeError: status.HTTP_416_RANGE_NOT_SATISFIABLE,
+    PlaybackUpstreamError: status.HTTP_502_BAD_GATEWAY,
+    PlaybackStateError: status.HTTP_409_CONFLICT,
 }
 
 _MESSAGE_BY_ERROR: dict[type[Exception], str] = {
@@ -61,9 +80,24 @@ _MESSAGE_BY_ERROR: dict[type[Exception], str] = {
     HeroChoiceRequiredError: "Artwork is chosen, not approved. Pick one of this proposal's candidates instead.",
     NoHeroCandidatesError: "Proposal '{detail}' offers a change to approve, not artwork to choose.",
     UnknownHeroCandidateError: "This proposal has no candidate {detail}.",
+    EntryNotFoundError: "No entry matches '{detail}'. Reload the queue - the sheet may have dropped that row.",
+    ResolutionConflictError: "{detail}",
+    WatchSubjectNotFoundError: "No {detail} to record a watch event against.",
+    # Deliberately without `{detail}`: the detail is already a class name rather than the upstream's
+    # own text, and this sentence must stay the same whichever of the two halves is missing.
+    JellyfinUnavailableError: "Jellyfin is unreachable or not configured.",
+    PlaybackItemNotFoundError: "That movie or episode is no longer in the library.",
+    PlaybackRangeError: "Request one byte range with a start and an optional end at or after it.",
+    PlaybackUpstreamError: "Jellyfin could not supply the requested media stream.",
+    PlaybackStateError: "{detail}",
 }
 
-_HANDLED_BASES: Final[tuple[type[Exception], ...]] = (WorkbookError, AgentError, CLINotFoundError)
+_HANDLED_BASES: Final[tuple[type[Exception], ...]] = (
+    WorkbookError,
+    AgentError,
+    CLINotFoundError,
+    ProjectionError,
+)
 
 
 def payload_for(error: Exception) -> dict[str, str]:

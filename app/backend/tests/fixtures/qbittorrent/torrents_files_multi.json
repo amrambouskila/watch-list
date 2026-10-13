@@ -1,0 +1,32 @@
+[
+  {
+    "index": 0,
+    "name": "Some.Show.S01/Some.Show.S01E01.1080p.WEB-DL.mkv",
+    "size": 2147483648,
+    "progress": 1,
+    "priority": 1,
+    "is_seed": true,
+    "piece_range": [0, 1023],
+    "availability": 1
+  },
+  {
+    "index": 1,
+    "name": "Some.Show.S01/Some.Show.S01E02.1080p.WEB-DL.mkv",
+    "size": 2147483648,
+    "progress": 1,
+    "priority": 1,
+    "is_seed": true,
+    "piece_range": [1024, 2047],
+    "availability": 1
+  },
+  {
+    "index": 2,
+    "name": "Some.Show.S01/Sample/sample.mkv",
+    "size": 31457280,
+    "progress": 1,
+    "priority": 1,
+    "is_seed": true,
+    "piece_range": [2048, 2063],
+    "availability": 1
+  }
+]

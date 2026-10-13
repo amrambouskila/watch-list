@@ -12,6 +12,7 @@ import type { CatalogListing } from "../types/CatalogListing";
 import type { CategoryDetail } from "../types/CategoryDetail";
 import type { LoadStatus } from "./catalogSlice";
 import { applyProposal } from "./chatSlice";
+import { savePlaybackSnapshot } from "./playbackSavesSlice";
 import type { RootState } from "./store";
 import { toWriteFailure, type WriteFailure } from "./writeFailure";
 import { enqueueWrite, noteMtime } from "./writeQueue";
@@ -187,6 +188,14 @@ const categorySlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    builder.addCase(savePlaybackSnapshot.fulfilled, (state, action) => {
+      const detail = action.payload.detail;
+      if (detail !== null && state.detail?.id === detail.id) state.detail = withPending(detail, state.pending);
+    });
+    builder.addCase(savePlaybackSnapshot.rejected, (state, action) => {
+      const detail = action.payload?.refreshed;
+      if (detail && state.detail?.id === detail.id) state.detail = withPending(detail, state.pending);
+    });
     builder
       .addCase(loadCategory.pending, (state, action) => {
         state.status = state.detail?.id === action.meta.arg ? "ready" : "loading";

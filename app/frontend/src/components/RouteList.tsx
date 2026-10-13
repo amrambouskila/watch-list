@@ -1,6 +1,7 @@
 import { useMemo, type ReactElement } from "react";
 
 import { useAppDispatch } from "../hooks/useAppDispatch";
+import { useAppSelector } from "../hooks/useAppSelector";
 import { useRowColumns } from "../hooks/useRowColumns";
 import { removeRow, writeRow } from "../stores/categorySlice";
 import { toggleRow } from "../stores/uiSlice";
@@ -8,6 +9,7 @@ import type { CategoryDetail } from "../types/CategoryDetail";
 import type { ColumnSpec } from "../types/ColumnSpec";
 import type { WatchRow } from "../types/WatchRow";
 import { WATCHED } from "../types/WatchStatus";
+import { entryForRow } from "../utils/entryForRow";
 import { RouteEntry } from "./RouteEntry";
 
 interface RouteListProps {
@@ -20,6 +22,9 @@ interface RouteListProps {
 export function RouteList({ detail, watch, rows, expandedRow }: RouteListProps): ReactElement {
   const dispatch = useAppDispatch();
   const layout = useRowColumns(detail.columns);
+  const entries = useAppSelector((state) => state.entries);
+  const activeId = useAppSelector((state) => state.ui.activeCategoryId);
+  const current = activeId === detail.id && entries.categoryId === detail.id && entries.mtime === detail.mtime && entries.status === "ready";
 
   /** Everything up to and including the last watched entry counts as ground covered. */
   const reached = useMemo(() => {
@@ -54,8 +59,10 @@ export function RouteList({ detail, watch, rows, expandedRow }: RouteListProps):
         const title = layout.title === null ? `Row ${row.row}` : (row.cells[layout.title.key] || "Untitled entry");
         return (
           <RouteEntry
+            mtime={detail.mtime}
             key={row.row}
             row={row}
+            entry={current ? entryForRow(entries.items, detail, row) : null}
             columns={detail.columns}
             layout={layout}
             watch={watch}

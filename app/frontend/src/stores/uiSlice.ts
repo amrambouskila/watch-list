@@ -1,6 +1,8 @@
 import { createSlice, isRejectedWithValue, nanoid, type PayloadAction } from "@reduxjs/toolkit";
 
 import type { AppView } from "../types/AppView";
+import type { PlaybackScope } from "../types/PlaybackScope";
+import { savePlaybackSnapshot } from "./playbackSavesSlice";
 import { removeRow, renameWorkbook, retireWorkbook } from "./categorySlice";
 
 import type { Toast, ToastTone } from "../types/Toast";
@@ -16,6 +18,7 @@ interface UiState {
   expandedRow: number | null;
   referenceOpen: boolean;
   newCategoryOpen: boolean;
+  playing: PlaybackScope | null;
   toasts: Toast[];
 }
 
@@ -28,6 +31,7 @@ const initialState: UiState = {
   expandedRow: null,
   referenceOpen: false,
   newCategoryOpen: false,
+  playing: null,
   toasts: [],
 };
 
@@ -36,6 +40,7 @@ const uiSlice = createSlice({
   initialState,
   reducers: {
     selectCategory(state, action: PayloadAction<string>) {
+      state.playing = null;
       state.view = "category";
       state.activeCategoryId = action.payload;
       state.filter = "all";
@@ -44,7 +49,14 @@ const uiSlice = createSlice({
       state.referenceOpen = false;
     },
     goHome(state) {
+      state.playing = null;
       state.view = "home";
+      state.referenceOpen = false;
+    },
+    /** The review queue spans every category, so it is a view of its own rather than one category's tab. */
+    goToUnresolved(state) {
+      state.playing = null;
+      state.view = "unresolved";
       state.referenceOpen = false;
     },
     setFilter(state, action: PayloadAction<WatchFilter>) {
@@ -65,6 +77,12 @@ const uiSlice = createSlice({
     setNewCategoryOpen(state, action: PayloadAction<boolean>) {
       state.newCategoryOpen = action.payload;
     },
+    openPlayer(state, action: PayloadAction<PlaybackScope>) {
+      state.playing = action.payload;
+    },
+    closePlayer(state) {
+      state.playing = null;
+    },
     notify(state, action: PayloadAction<{ message: string; tone: ToastTone }>) {
       state.toasts.push({ id: nanoid(), ...action.payload });
     },
@@ -83,18 +101,27 @@ const uiSlice = createSlice({
     });
     // The workbook has left the library, so the category that was open cannot be reopened.
     builder.addCase(retireWorkbook.fulfilled, (state) => {
+      state.playing = null;
       state.view = "home";
       state.activeCategoryId = null;
       state.expandedRow = null;
       state.referenceOpen = false;
     });
+    builder.addCase(savePlaybackSnapshot.fulfilled, (state, action) => {
+      state.toasts = state.toasts.filter((toast) =>
+        toast.playbackSnapshotId === undefined || !action.payload.retired.includes(toast.playbackSnapshotId));
+    });
     builder.addMatcher(isRejectedWithValue, (state, action) => {
       const failure = action.payload as WriteFailure | undefined;
       if (failure === undefined) return;
+      if (failure.playbackSnapshotId !== undefined) {
+        state.toasts = state.toasts.filter((toast) => toast.playbackSnapshotId !== failure.playbackSnapshotId);
+      }
       state.toasts.push({
         id: nanoid(),
         tone: failure.refreshed ? "info" : "error",
         message: failure.message,
+        ...(failure.playbackSnapshotId === undefined ? {} : { playbackSnapshotId: failure.playbackSnapshotId }),
       });
     });
   },
@@ -103,12 +130,15 @@ const uiSlice = createSlice({
 export const {
   selectCategory,
   goHome,
+  goToUnresolved,
   setFilter,
   setQuery,
   setCategoryQuery,
   toggleRow,
   setReferenceOpen,
   setNewCategoryOpen,
+  openPlayer,
+  closePlayer,
   notify,
   dismissToast,
 } = uiSlice.actions;

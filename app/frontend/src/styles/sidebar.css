@@ -35,6 +35,10 @@
   overflow-wrap: anywhere;
 }
 
+.sidebar__nav {
+  padding: var(--gap-3) var(--gap-4) 0;
+}
+
 .sidebar__search {
   padding: var(--gap-3) var(--gap-4);
 }
@@ -52,7 +56,8 @@
   border-top: 1px solid var(--edge);
 }
 
-.category-link {
+.category-link,
+.sidebar__nav-entry {
   display: block;
   width: 100%;
   padding: var(--gap-2) var(--gap-2) var(--gap-2) var(--gap-3);
@@ -62,13 +67,31 @@
   transition: background 120ms ease, border-color 120ms ease;
 }
 
-.category-link:hover {
+.category-link:hover,
+.sidebar__nav-entry:hover {
   background: var(--ink-850);
 }
 
-.category-link[aria-current="true"] {
+.category-link[aria-current="true"],
+.sidebar__nav-entry[aria-current="true"] {
   background: var(--ink-850);
   border-left-color: var(--accent);
+}
+
+/* The one thing the nav entry does not share: it sets an icon beside its label, where a category link
+   stacks a name over a tally. Everything above it - the rail, the hover, the current-page mark - is the
+   category link's own treatment, reused rather than copied. */
+.sidebar__nav-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-2);
+  font-size: var(--step-2);
+  color: var(--mist-200);
+}
+
+.sidebar__nav-entry:hover,
+.sidebar__nav-entry[aria-current="true"] {
+  color: var(--paper);
 }
 
 .category-link__top {
@@ -216,4 +239,42 @@
   display: block;
   color: var(--mist-400);
   font-weight: 500;
+}
+
+/*
+ * The metadata providers' attribution, in the sidebar foot under this app's own mark.
+ *
+ * Deliberately the quietest type in the app: it is a licence obligation that has to be legible and
+ * has no business competing with the library above it.
+ */
+.attribution {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-2);
+  margin-top: var(--gap-3);
+}
+
+.attribution__line {
+  margin: 0;
+  font-size: var(--step-0);
+  line-height: 1.4;
+  color: var(--mist-400);
+}
+
+/* The mark sits on its own line above the notice, and is only ever as wide as the mark itself. */
+.attribution__mark {
+  display: block;
+  width: fit-content;
+  margin-bottom: var(--gap-1);
+}
+
+/*
+ * TMDB's terms forbid recolouring the mark or changing its aspect, so the height is the only thing
+ * set here and the file's own ratio decides the width. Twelve pixels against the wordmark's
+ * sixteen-pixel display type is what keeps it the less prominent of the two.
+ */
+.attribution__logo {
+  display: block;
+  height: 12px;
+  width: auto;
 }

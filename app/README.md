@@ -1,9 +1,11 @@
 # Watch List
 
 A local app for the `.xlsx` watch orders sitting in this repository's root folder.
-The workbooks stay the source of truth — there is no database. Every change you make in the
-app is written straight back into the spreadsheet, preserving its table, dropdowns, and
-conditional formatting, so opening the file in Excel afterwards shows exactly what you did.
+The workbooks stay the source of truth for order and curation; from Phase 1 a Postgres projection
+sits beside them for episodes and watch history, derived from the sheets and never the other way
+round. Every change you make in the app is written straight back into the spreadsheet, preserving
+its table, dropdowns, and conditional formatting, so opening the file in Excel afterwards shows
+exactly what you did.
 
 ## Run it
 
@@ -12,7 +14,8 @@ run_tv.bat        (Windows)
 ./run_tv.sh       (bash)
 ```
 
-First run installs both halves. Then:
+First run installs both halves, brings up the compose Postgres service, and runs
+`alembic upgrade head` against it before starting the two dev servers. Then:
 
 | | |
 |---|---|
@@ -20,7 +23,8 @@ First run installs both halves. Then:
 | API | http://localhost:8284 |
 | API docs | http://localhost:8284/docs |
 
-`[r]` restarts both services, `[k]` stops and exits.
+`[r]` restarts both services (Postgres stays up), `[k]` stops everything, `[q]` also removes this
+project's own images (keeps volumes), `[v]` does a full cleanup including volumes.
 
 ## How it works
 
@@ -34,7 +38,11 @@ graph LR
 
 One workbook is one category. The app opens on a wall of cards — one per category, each with
 its own artwork and progress — and clicking one opens its watch order. The sidebar switches
-categories from anywhere; the wordmark goes back to the cards.
+categories from anywhere; the wordmark goes back to the cards. Its foot carries the attribution
+both metadata providers require — TMDB's verbatim notice beside their unmodified mark linking to
+themoviedb.org, and TheTVDB's line linking to thetvdb.com — under this app's own wordmark rather
+than beside it, and on every screen, because both obligations are about the screen the data
+appears on rather than a settings page.
 
 The app reads the **first sheet** of each file, whatever it is called, finds its `Title` and
 `Watched?` columns from the header row, and treats every other column as metadata. Nothing
@@ -64,10 +72,10 @@ category id, drawn in that workbook's own accent colour, then rotated and scaled
 hash so no two categories look alike even when they share a motif. On top of it sits the
 franchise logo from `app/heroes/`.
 
-The eighteen images that ship came from Wikimedia Commons under free licences (public domain,
-CC0, CC BY) — `app/heroes/ATTRIBUTION.md` lists the source file, licence and page for each.
-Each was cropped to the mark and, where the original was dark line art or carried a solid
-plate, recoloured or knocked out so it reads on a dark card.
+The images that ship came from Wikimedia Commons under free licences (public domain, CC0, CC BY) —
+`app/heroes/ATTRIBUTION.md` lists the source file, licence and page for each. Each was cropped to
+the mark and, where the original was dark line art or carried a solid plate, recoloured or knocked
+out so it reads on a dark card.
 
 To swap one, drop your own file into `app/heroes/` named after the category id:
 
@@ -87,6 +95,7 @@ instead. Renaming a category changes its id, so rename the image to match.
 | The file is open in Excel | The write is refused with a clear message; nothing is written |
 | The file changed on disk since the app loaded it | The write is refused and the app reloads, so an Excel edit is never clobbered |
 | A save fails midway | Writes go to a temp file and are swapped in atomically — the original is never truncated |
+| The Postgres ingest projects a workbook | One `Catalog._write` call per workbook mints its hidden `Row ID` column; the `Watched?` cell is mirrored back but never read as truth — only as a signal that a human edited it in Excel |
 
 ## Controls you can actually click
 
@@ -105,7 +114,10 @@ went wrong — a file that would not open, a file another file hides, and a work
 For every control on a surface it asserts that the control is inside the window, that nothing is
 painted over it, that nothing has spilled out of a box of its own underneath it, that at least half
 of what the app promised of it is actually there, and that at least three quarters of it answers a
-click.
+click. One surface also carries a pixel-level check no DOM assertion could make: the sidebar's TMDB
+attribution mark must have loaded, stand exactly 12px tall, keep its source image's aspect ratio,
+carry no recolouring filter, and render smaller than the wordmark above it —
+`layout/specs/attribution.spec.ts`.
 
 Each control is judged on the area its panes have actually left visible, so a link an ancestor
 ellipsises on purpose is measured at the width that is on screen rather than at the width of its
@@ -127,10 +139,12 @@ fixtures, and any request addressed off the probe server's origin fails the run.
 ```
 app/
 ├─ backend/           FastAPI + openpyxl. src/tv_watchlist/workbook/ is the Excel layer.
-│  └─ tests/          712 tests, run against throwaway copies of the real workbooks.
+│  └─ tests/          Real disposable PostgreSQL and throwaway workbook copies;
+│                     current measurements are in ../docs/status.md.
 ├─ frontend/          React 18 + TypeScript strict + Vite + Redux Toolkit.
-│  ├─ tests/          207 Vitest tests of behaviour, in jsdom.
-│  └─ layout/         The layout guard: the real app in a real browser, at four window sizes.
+│  ├─ tests/          320 Vitest tests of behaviour, in jsdom.
+│  └─ layout/         The layout guard: the real app in a real browser, at four window sizes
+│                     (196 runs — 49 tests each).
 ├─ heroes/            Optional per-category card images, named by category id.
 └─ .backups/          Automatic pre-write snapshots.
 ```
@@ -141,11 +155,19 @@ app/
 cd app/backend  && uv run pytest -q                 # tests
 cd app/backend  && uv run ruff check .              # lint
 cd app/backend  && uv run ruff format --check .     # formatting
+cd app/backend  && uv run python -m tv_watchlist.ingest.bootstrap   # first ingest: project the workbooks into Postgres
 cd app/frontend && pnpm exec tsc -b && pnpm lint    # types + lint
 cd app/frontend && pnpm test                        # tests
 cd app/frontend && pnpm test:coverage               # tests, with a coverage report
 cd app/frontend && pnpm test:layout                 # layout guard, in a real browser
 ```
+
+The first ingest is one command, run from `app/backend`: `uv run python -m tv_watchlist.ingest.bootstrap`.
+It takes one workbook at a time, each under that workbook's own lock, its own database transaction
+and its own backup snapshot; a workbook Excel is holding, one that will not open, or one that changed
+mid-pass is recorded and the run carries on. It exits `1` if anything was refused and `2` if the run
+itself could not proceed (an unreachable database, a schema behind `head`). Add `--dry-run` to plan
+it without writing to either store, or `--only SLUG …` for one or more categories by id.
 
 Ports come from `TV_BACKEND_PORT` / `TV_FRONTEND_PORT`; the library folder from
 `TV_LIBRARY_DIR`.

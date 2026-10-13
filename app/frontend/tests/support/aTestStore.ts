@@ -3,11 +3,14 @@ import { configureStore } from "@reduxjs/toolkit";
 import catalog from "../../src/stores/catalogSlice";
 import category from "../../src/stores/categorySlice";
 import chat from "../../src/stores/chatSlice";
+import entries from "../../src/stores/entriesSlice";
+import playbackSaves from "../../src/stores/playbackSavesSlice";
+import review from "../../src/stores/reviewSlice";
 import ui from "../../src/stores/uiSlice";
 
 /** The app's real reducers in a store of their own, so no test inherits another test's state. */
 export function aTestStore() {
-  return configureStore({ reducer: { catalog, category, chat, ui } });
+  return configureStore({ reducer: { catalog, category, chat, entries, playbackSaves, review, ui } });
 }
 
 export type TestStore = ReturnType<typeof aTestStore>;

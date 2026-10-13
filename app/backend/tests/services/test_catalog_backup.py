@@ -8,9 +8,10 @@ from typing import Final
 
 import pytest
 
+from backup_support import restore_points
 from library_choice import a_name_the_library_does_not_hold
 from tv_watchlist.config import Settings
-from tv_watchlist.constants import FIRST_DATA_ROW, WORKBOOK_SUFFIX
+from tv_watchlist.constants import FIRST_DATA_ROW
 from tv_watchlist.models.category_rename import CategoryRename
 from tv_watchlist.models.row_change import RowChange
 from tv_watchlist.models.row_write import RowWrite
@@ -25,11 +26,6 @@ CELL_EDIT: Final[str] = "ticked by hand"
 RESEARCHED_NOTE: Final[str] = "the whole rewrite an agent proposed"
 APPENDED_TITLE: Final[str] = "One more entry"
 FRESH_STEM: Final[str] = Path(workbook_filename(a_name_the_library_does_not_hold("Renamed Watch Order"))).stem
-
-
-def restore_points(settings: Settings, subject: WorkbookFacts) -> list[bytes]:
-    """The contents of every backup copy taken of this workbook so far."""
-    return [path.read_bytes() for path in sorted(settings.backup_dir.glob(f"{subject.stem}__*{WORKBOOK_SUFFIX}"))]
 
 
 async def a_hand_edit(catalog: Catalog, subject: WorkbookFacts) -> None:

@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 
 import { useAccent } from "../hooks/useAccent";
 import { useAppDispatch } from "../hooks/useAppDispatch";
@@ -6,6 +6,8 @@ import { useAppSelector } from "../hooks/useAppSelector";
 import { useVisibleRows } from "../hooks/useVisibleRows";
 import { useWatchColumn } from "../hooks/useWatchColumn";
 import { enableWatchColumn, loadCategory } from "../stores/categorySlice";
+import { loadEntries } from "../stores/entriesSlice";
+import { hasPendingWrites } from "../stores/hasPendingWrites";
 import { AddEntryDialog } from "./AddEntryDialog";
 import { CategoryBanner } from "./CategoryBanner";
 import { FilterBar } from "./FilterBar";
@@ -22,12 +24,31 @@ export function CategoryStage(): ReactElement {
   const query = useAppSelector((state) => state.ui.query);
   const expandedRow = useAppSelector((state) => state.ui.expandedRow);
   const referenceOpen = useAppSelector((state) => state.ui.referenceOpen);
+  const entries = useAppSelector((state) => state.entries);
+  const writing = useAppSelector(hasPendingWrites);
   const [adding, setAdding] = useState(false);
   const [retiring, setRetiring] = useState(false);
+  const [availabilityAttempt, setAvailabilityAttempt] = useState(0);
 
   const watch = useWatchColumn(detail);
   const rows = useVisibleRows(detail, watch, filter, query);
   const palette = useAccent(detail?.accent, detail?.id);
+  const categoryId = detail?.id;
+  const mtime = detail?.mtime;
+
+  useEffect(() => {
+    if (categoryId === undefined || mtime === undefined || categoryId !== activeId) return;
+    const pending = dispatch(loadEntries({ categoryId, mtime }));
+    return () => pending.abort();
+  }, [activeId, categoryId, mtime, availabilityAttempt, dispatch]);
+
+  useEffect(() => {
+    const refresh = (): void => {
+      if (!writing) setAvailabilityAttempt((value) => value + 1);
+    };
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, [writing]);
 
   if (detail === null) {
     return (
@@ -80,6 +101,15 @@ export function CategoryStage(): ReactElement {
       )}
 
       <FilterBar detail={detail} filter={filter} query={query} onAddEntry={() => setAdding(true)} />
+
+      {entries.categoryId === detail.id && entries.status === "loading" &&
+        <p className="notice" role="status">Checking library availability…</p>}
+      {entries.categoryId === detail.id && entries.status === "failed" &&
+        <div className="notice"><span role="alert">Library availability could not be read.</span>
+          <button type="button" className="button" onClick={() => setAvailabilityAttempt((value) => value + 1)}>
+            Retry availability
+          </button>
+        </div>}
 
       {rows.length === 0 ? (
         <div className="empty">

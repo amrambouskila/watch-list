@@ -5,6 +5,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from tv_watchlist.constants import (
+    APP_OWNED_HEADER_ALIASES,
     DEFAULT_ACCENT_RGB,
     DEFAULT_NEW_CATEGORY_COLUMNS,
     HEX_COLOR_PATTERN,
@@ -16,7 +17,7 @@ from tv_watchlist.models.cell_text import sanitize
 
 # The one place column keys are minted, so a request's vocabulary matches what the reader
 # will derive from the headers this request writes.
-from tv_watchlist.workbook.schema import unique_key
+from tv_watchlist.workbook.schema import normalize_header, unique_key
 
 
 class CategoryCreate(BaseModel):
@@ -36,6 +37,14 @@ class CategoryCreate(BaseModel):
         if isinstance(value, str):
             return sanitize(value, MAX_TITLE_LENGTH)
         return [sanitize(item, MAX_TITLE_LENGTH) for item in value]
+
+    @field_validator("columns", mode="after")
+    @classmethod
+    def _reject_app_owned_columns(cls, value: list[str]) -> list[str]:
+        for label in value:
+            if normalize_header(label) in APP_OWNED_HEADER_ALIASES:
+                raise ValueError(f"{label!r} is a column the app owns; pick another name")
+        return value
 
     @field_validator("rows", mode="after")
     @classmethod

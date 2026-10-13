@@ -1,0 +1,18 @@
+{
+  "Items": [
+    {
+      "Name": "Naruto",
+      "Id": "9f3b1c5d7e2a48c6b4d8e0f2a1c3b5d7",
+      "Path": "/media/anime/Naruto",
+      "ProductionYear": 2002,
+      "ProviderIds": {
+        "Tmdb": "46260",
+        "Tvdb": "78857"
+      },
+      "Type": "Series",
+      "MediaType": "Unknown"
+    }
+  ],
+  "TotalRecordCount": 3,
+  "StartIndex": 2
+}

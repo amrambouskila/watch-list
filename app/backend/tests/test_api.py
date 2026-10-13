@@ -31,6 +31,7 @@ NEW_CATEGORY_NAME = a_name_the_library_does_not_hold("Cowboy Bebop")
 NEW_CATEGORY_STEM = "Cowboy_Bebop"
 WIDE_CATEGORY_NAME = a_name_the_library_does_not_hold("Twin Peaks")
 OVERWIDE_CATEGORY_NAME = a_name_the_library_does_not_hold("Too Wide")
+RESERVED_HEADER_CATEGORY_NAME = a_name_the_library_does_not_hold("Reserved Header")
 RENAMED_STEM = a_name_the_library_does_not_hold("Renamed_Franchise_Master_Watch_Order")
 RENAMED_ID = "renamed-franchise-master-watch-order"
 AN_ACCENT = "#2563EB"
@@ -261,6 +262,14 @@ async def test_a_new_category_with_repeated_columns_stays_valid(client: AsyncCli
     labels = [column["label"] for column in response.json()["columns"]]
     assert labels == ["Order", "Title", "Title 2", "Notes", "Watched?"]
     assert len(set(labels)) == len(labels)
+
+
+async def test_a_new_category_cannot_request_a_column_the_app_owns(client: AsyncClient) -> None:
+    response = await client.post(
+        "/api/categories", json={"name": RESERVED_HEADER_CATEGORY_NAME, "columns": ["Order", "Title", "Row ID"]}
+    )
+    assert response.status_code == 422
+    assert "a column the app owns" in response.text
 
 
 async def test_a_new_category_cannot_request_an_unbounded_column_list(client: AsyncClient) -> None:

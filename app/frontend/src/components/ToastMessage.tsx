@@ -1,6 +1,7 @@
 import { useEffect, type ReactElement } from "react";
 
 import type { Toast } from "../types/Toast";
+import { PlaybackSaveRetry } from "./PlaybackSaveRetry";
 
 const DISMISS_AFTER_MS = 7000;
 
@@ -14,13 +15,15 @@ export function ToastMessage({ toast, onDismiss }: ToastMessageProps): ReactElem
   const { id } = toast;
 
   useEffect(() => {
+    if (toast.playbackSnapshotId !== undefined) return;
     const timer = window.setTimeout(() => onDismiss(id), DISMISS_AFTER_MS);
     return () => window.clearTimeout(timer);
-  }, [id, onDismiss]);
+  }, [id, onDismiss, toast.playbackSnapshotId]);
 
   return (
     <div className={`toast toast--${toast.tone}`}>
       <span>{toast.message}</span>
+      {toast.playbackSnapshotId !== undefined && <PlaybackSaveRetry snapshotId={toast.playbackSnapshotId} />}
       <button type="button" className="toast__dismiss" aria-label="Dismiss" onClick={() => onDismiss(id)}>
         ×
       </button>

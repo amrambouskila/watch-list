@@ -1,0 +1,44 @@
+{
+  "Items": [
+    {
+      "Name": "Iron Man",
+      "Id": "0a1b2c3d4e5f6071829304a5b6c7d8e9",
+      "Path": "/media/movies/Marvel/Iron Man (2008)/Iron Man (2008) Bluray-1080p.mkv",
+      "RunTimeTicks": 75600000000,
+      "ProductionYear": 2008,
+      "ProviderIds": {
+        "Tmdb": "1726",
+        "Imdb": "tt0371746"
+      },
+      "Type": "Movie",
+      "MediaType": "Video"
+    },
+    {
+      "Name": "The Incredible Hulk",
+      "Id": "1b2c3d4e5f60718293a4b5c6d7e8f901",
+      "Path": "/media/movies/Marvel/The Incredible Hulk (2008)/The Incredible Hulk (2008) WEBDL-1080p.mkv",
+      "RunTimeTicks": 67200000000,
+      "ProductionYear": 2008,
+      "ProviderIds": {
+        "Tmdb": "1724",
+        "Imdb": "tt0800080"
+      },
+      "Type": "Movie",
+      "MediaType": "Video"
+    },
+    {
+      "Name": "Spider-Man",
+      "Id": "2c3d4e5f60718293a4b5c6d7e8f90123",
+      "Path": "/media/movies/Marvel/Spider-Man (2002)/Spider-Man (2002) Bluray-1080p.mkv",
+      "RunTimeTicks": 73800000000,
+      "ProductionYear": 2002,
+      "ProviderIds": {
+        "Imdb": "tt0145487"
+      },
+      "Type": "Movie",
+      "MediaType": "Video"
+    }
+  ],
+  "TotalRecordCount": 3,
+  "StartIndex": 0
+}

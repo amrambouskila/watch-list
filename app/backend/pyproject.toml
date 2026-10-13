@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Local watch-order tracker backed directly by the TV folder's Excel workbooks."
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi>=0.115.0",
+    "fastapi>=0.121.0",
     "uvicorn[standard]>=0.32.0",
     "pydantic>=2.6.0",
     "pydantic-settings>=2.5.0",
@@ -12,6 +12,9 @@ dependencies = [
     "claude-agent-sdk>=0.2.144",
     "playwright>=1.49.0",
     "httpx>=0.28.0",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "alembic>=1.14.0",
 ]
 
 [dependency-groups]
@@ -43,6 +46,7 @@ select = ["E", "F", "I", "N", "UP", "ANN", "S"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-# Shared test support - the agent stubs and the image byte samples - imports the same way from
-# every test directory.
-pythonpath = ["tests/agent", "tests/services"]
+# Shared test support - the recorded provider fixtures at the tests root, the agent stubs and the image
+# byte samples - imports the same way from every test directory. `tests` is listed rather than left to
+# pytest's conftest-directory insertion, so the import path is declared where a reader can see it.
+pythonpath = ["tests", "tests/agent", "tests/ingest", "tests/services"]

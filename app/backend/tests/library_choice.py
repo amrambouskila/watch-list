@@ -13,7 +13,8 @@ from tv_watchlist.workbook.naming import workbook_filename
 from workbook_facts import WorkbookFacts, read_facts
 
 # Honours TV_LIBRARY_DIR, so the whole suite can be pointed at a copy of the library.
-LIBRARY_DIR: Final[Path] = Settings().library_dir
+# `_env_file=None`: the environment variable still steers this, but the owner's root .env never does.
+LIBRARY_DIR: Final[Path] = Settings(_env_file=None).library_dir
 
 Property = Callable[[WorkbookFacts], bool]
 

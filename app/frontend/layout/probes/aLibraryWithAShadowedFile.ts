@@ -4,7 +4,7 @@ import { aProbeLibrary, type ProbeLibrary } from "./aProbeLibrary";
 export function aLibraryWithAShadowedFile(): ProbeLibrary {
   const library = aProbeLibrary();
   return {
-    detail: library.detail,
+    ...library,
     listing: {
       ...library.listing,
       shadowed: [

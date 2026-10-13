@@ -1,0 +1,8 @@
+{
+  "dcu": ["DC's {title}"],
+  "marvel": ["Marvel One-Shot: {title}", "Marvel's {title}"],
+  "naruto": ["Naruto the Movie: {title}", "Naruto Shippuden the Movie: {title}"],
+  "one-piece": ["One Piece: {title}"],
+  "pokemon": ["Pokémon: {title}", "Pokémon the Movie: {title}"],
+  "star-wars": ["Star Wars: {title}"]
+}

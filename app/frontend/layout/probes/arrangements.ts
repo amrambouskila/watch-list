@@ -1,5 +1,5 @@
 import { applyProposal, sendChatMessage, setChatOpen } from "../../src/stores/chatSlice";
-import { selectCategory, setNewCategoryOpen, setReferenceOpen, toggleRow } from "../../src/stores/uiSlice";
+import { closePlayer, goToUnresolved, selectCategory, setNewCategoryOpen, setReferenceOpen, toggleRow } from "../../src/stores/uiSlice";
 import type { ChatEvent } from "../../src/types/ChatEvent";
 import type { Proposal } from "../../src/types/Proposal";
 import { A_CATEGORY_ID } from "../../tests/support/aProposalBody";
@@ -10,8 +10,10 @@ import { A_REFUSED_WRITE } from "./aFakeBackend";
 import { aLibraryExcelIsHolding } from "./aLibraryExcelIsHolding";
 import { aLibraryWithAShadowedFile } from "./aLibraryWithAShadowedFile";
 import { aLibraryWithFilesItCannotOpen } from "./aLibraryWithFilesItCannotOpen";
+import { aLibraryWithUnresolvedRows } from "./aLibraryWithUnresolvedRows";
 import { aLongEditProposal } from "./aLongEditProposal";
 import { aNewCategoryProposal } from "./aNewCategoryProposal";
+import { aPlayableCategory } from "./aPlayableCategory";
 import { FIRST_DATA_ROW } from "./aProbeCategory";
 import type { ProbeLibrary } from "./aProbeLibrary";
 import { fillTheToastLane } from "./fillTheToastLane";
@@ -31,6 +33,7 @@ const EYEBROW = ".eyebrow";
 const COULD_NOT_BE_OPENED = "Could not be opened";
 const HIDDEN_BY_ANOTHER_FILE = "Hidden by another file";
 const LOCKED_BANNER = ".notice--locked";
+const UNRESOLVED_ROW = ".unresolved__row";
 
 /** How the guard puts one surface on screen, and the turn the fake backend streams to get it there. */
 export interface Arrangement {
@@ -99,6 +102,39 @@ async function openTheCategory(store: TestStore): Promise<void> {
   await untilPresent(ROUTE_ENTRY);
   store.dispatch(toggleRow(FIRST_DATA_ROW));
   await untilPresent(ROW_DETAIL);
+}
+
+/** The review queue, reached the way a person reaches it: the nav entry, then the rows it loads. */
+async function openTheUnresolvedView(store: TestStore): Promise<void> {
+  store.dispatch(goToUnresolved());
+  await untilPresent(UNRESOLVED_ROW);
+}
+
+async function openThePlayableCategory(store: TestStore): Promise<void> {
+  await openTheCategory(store);
+  await untilPresent(".play-button");
+}
+
+async function openThePlayer(store: TestStore): Promise<void> {
+  await openThePlayableCategory(store);
+  (await untilPresent<HTMLButtonElement>(".play-button")).click();
+  await untilPresent(".player video");
+}
+
+async function failAPlayerSave(store: TestStore): Promise<void> {
+  await openThePlayer(store);
+  const video = await untilPresent<HTMLVideoElement>(".player video");
+  Object.defineProperty(video, "currentTime", { value: 60 });
+  Object.defineProperty(video, "duration", { value: 120 });
+  video.dispatchEvent(new Event("playing"));
+  video.dispatchEvent(new Event("pause"));
+  await untilPresent("button", "Retry save");
+}
+
+async function closeWithAPlayerSavePending(store: TestStore): Promise<void> {
+  await failAPlayerSave(store);
+  store.dispatch(closePlayer());
+  await untilPresent(".play-button");
 }
 
 /** The dialog opens from the banner and nowhere else, so the probe opens it from the banner. */
@@ -202,4 +238,13 @@ export const ARRANGEMENTS: Readonly<Record<SurfaceName, Arrangement>> = {
     library: aLibraryExcelIsHolding(),
     drive: openTheCategoryExcelIsHolding,
   },
+  "unresolved-view": {
+    turn: [],
+    library: aLibraryWithUnresolvedRows(),
+    drive: openTheUnresolvedView,
+  },
+  "category-with-a-playable-entry": { turn: [], library: aPlayableCategory(), drive: openThePlayableCategory },
+  "player-overlay": { turn: [], library: aPlayableCategory(), drive: openThePlayer },
+  "player-with-pending-save": { turn: [], library: aPlayableCategory(), drive: failAPlayerSave },
+  "closed-player-with-pending-save": { turn: [], library: aPlayableCategory(), drive: closeWithAPlayerSavePending },
 };

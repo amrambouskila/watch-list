@@ -1,0 +1,12 @@
+[
+  {
+    "index": 0,
+    "name": "Some.Movie.2019.1080p.BluRay.mkv",
+    "size": 6442450944,
+    "progress": 1,
+    "priority": 1,
+    "is_seed": true,
+    "piece_range": [0, 3071],
+    "availability": 1
+  }
+]

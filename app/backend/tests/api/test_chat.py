@@ -11,7 +11,6 @@ from typing import NamedTuple
 import httpx
 import pytest
 from claude_agent_sdk import CLINotFoundError
-from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient, Response
 from mock_responder import MockResponder
 from recording_reader import RecordingReader
@@ -19,6 +18,7 @@ from sample_images import PNG
 from stub_client import StubClient
 
 from library_choice import a_category, a_name_the_library_does_not_hold
+from lifespan_support import run_lifespan
 from tv_watchlist.agent.constants import (
     QUALIFIED_FETCH_URL_TOOL,
     QUALIFIED_GET_CATEGORY_TOOL,
@@ -226,19 +226,6 @@ class StubRuntime:
 
     async def aclose(self) -> None:
         self.closed = True
-
-
-async def run_lifespan(app: FastAPI) -> None:
-    """Take an app through startup and shutdown the way the ASGI server does."""
-    events: list[dict[str, str]] = [{"type": "lifespan.startup"}, {"type": "lifespan.shutdown"}]
-
-    async def receive() -> dict[str, str]:
-        return events.pop(0)
-
-    async def send(message: dict[str, str]) -> None:
-        return None
-
-    await app({"type": "lifespan"}, receive, send)
 
 
 def client_for(

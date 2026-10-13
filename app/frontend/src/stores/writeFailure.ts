@@ -4,6 +4,7 @@ import type { CategoryDetail } from "../types/CategoryDetail";
 import { noteMtime } from "./writeQueue";
 
 export interface WriteFailure {
+  readonly playbackSnapshotId?: string;
   readonly message: string;
   /** Present when the workbook changed underneath us and was reloaded instead of overwritten. */
   readonly refreshed: CategoryDetail | null;

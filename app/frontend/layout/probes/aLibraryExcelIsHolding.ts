@@ -1,6 +1,6 @@
 import { aProbeCategory } from "./aProbeCategory";
 import { aProbeListing } from "./aProbeListing";
-import type { ProbeLibrary } from "./aProbeLibrary";
+import { aProbeLibrary, type ProbeLibrary } from "./aProbeLibrary";
 
 /**
  * The library with its one category open in Excel, which the stage says so with a banner.
@@ -10,5 +10,5 @@ import type { ProbeLibrary } from "./aProbeLibrary";
  */
 export function aLibraryExcelIsHolding(): ProbeLibrary {
   const detail = { ...aProbeCategory(), locked_by_excel: true };
-  return { detail, listing: aProbeListing(detail) };
+  return { ...aProbeLibrary(), detail, listing: aProbeListing(detail) };
 }

@@ -7,6 +7,7 @@ const CONFLICT = 409;
 const NOT_FOUND = 404;
 const A_SESSION_ID = "a-probe-session";
 const CATALOG_PATH = "/api/categories";
+const REVIEW_QUEUE_PATH = "/api/review/entries";
 const SESSIONS_PATH = "/api/chat/sessions";
 const PROPOSALS_PATH = "/api/chat/proposals/";
 const MESSAGES_SUFFIX = "/messages";
@@ -45,11 +46,20 @@ function streamedTurn(turn: readonly ChatEvent[]): Response {
  * and the app only ever learns that here.
  */
 export function serveProbeBackend(turn: readonly ChatEvent[], library: ProbeLibrary = aProbeLibrary()): void {
-  const { detail, listing } = library;
+  const { detail, listing, queue, entries, playbackItems } = library;
 
   window.fetch = (input: RequestInfo | URL): Promise<Response> => {
     const { pathname } = new URL(String(input), window.location.origin);
     if (pathname === CATALOG_PATH) return Promise.resolve(jsonResponse(listing));
+    if (pathname === REVIEW_QUEUE_PATH) return Promise.resolve(jsonResponse(queue));
+    if (pathname === `${CATALOG_PATH}/${detail.id}/entries`) return Promise.resolve(jsonResponse(entries));
+    if (pathname.startsWith("/api/playback/entries/") && pathname.endsWith("/items")) {
+      return Promise.resolve(jsonResponse(playbackItems));
+    }
+    if (pathname === "/api/watch-events") return Promise.resolve(jsonResponse({ id: "probe-watch-event" }));
+    if (pathname.startsWith("/api/playback/entries/") && pathname.endsWith("/position")) {
+      return Promise.resolve(refusedWrite());
+    }
     if (pathname === `${CATALOG_PATH}/${detail.id}`) return Promise.resolve(jsonResponse(detail));
     if (pathname === SESSIONS_PATH) return Promise.resolve(jsonResponse({ session_id: A_SESSION_ID }));
     if (pathname.endsWith(MESSAGES_SUFFIX)) return Promise.resolve(streamedTurn(turn));

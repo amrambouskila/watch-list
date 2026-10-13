@@ -6,3 +6,5 @@
 @import "./styles/home.css";
 @import "./styles/overlays.css";
 @import "./styles/chat.css";
+@import "./styles/unresolved.css";
+@import "./styles/player.css";

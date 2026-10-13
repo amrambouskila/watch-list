@@ -1,5 +1,5 @@
 export type ColumnKind = "text" | "choice";
-export type ColumnRole = "order" | "title" | "watch" | "other";
+export type ColumnRole = "order" | "title" | "watch" | "identity" | "position" | "other";
 
 export interface ColumnSpec {
   key: string;

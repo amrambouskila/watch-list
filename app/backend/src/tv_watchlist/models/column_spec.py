@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 ColumnKind = Literal["text", "choice"]
-ColumnRole = Literal["order", "title", "watch", "other"]
+ColumnRole = Literal["order", "title", "watch", "identity", "position", "other"]
 
 
 class ColumnSpec(BaseModel):

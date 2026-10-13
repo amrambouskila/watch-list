@@ -2,12 +2,17 @@ import type { ReactElement } from "react";
 
 import type { RowColumns } from "../hooks/useRowColumns";
 import type { ColumnSpec } from "../types/ColumnSpec";
+import type { CuratedEntryRead } from "../types/CuratedEntryRead";
 import type { WatchRow } from "../types/WatchRow";
 import { RowDetail } from "./RowDetail";
 import { WatchNode } from "./WatchNode";
+import { AvailabilityBadge } from "./AvailabilityBadge";
+import { PlayButton } from "./PlayButton";
 
 interface RouteEntryProps {
   readonly row: WatchRow;
+  readonly entry: CuratedEntryRead | null;
+  readonly mtime: number;
   readonly columns: readonly ColumnSpec[];
   readonly layout: RowColumns;
   readonly watch: ColumnSpec | null;
@@ -22,6 +27,8 @@ interface RouteEntryProps {
 
 export function RouteEntry({
   row,
+  entry,
+  mtime,
   columns,
   layout,
   watch,
@@ -52,6 +59,12 @@ export function RouteEntry({
         <div className="route-row__body">
           <span className="route-row__name">{title}</span>
           {leadValue !== "" && <span className="route-row__unit">{leadValue}</span>}
+          {entry !== null && (
+            <span className="route-row__playback">
+              <AvailabilityBadge availability={entry.availability} />
+              <PlayButton entry={entry} title={title} mtime={mtime} />
+            </span>
+          )}
         </div>
         {tags.length > 0 && (
           <div className="route-row__meta">

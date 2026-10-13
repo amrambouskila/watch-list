@@ -7,8 +7,13 @@ import re
 from openpyxl.worksheet.worksheet import Worksheet
 
 from tv_watchlist.constants import (
+    APP_OWNED_COLUMN_ROLES,
     HEADER_ROW,
+    IDENTITY_COLUMN_ROLE,
+    IDENTITY_HEADER_ALIASES,
     ORDER_HEADER_ALIASES,
+    POSITION_COLUMN_ROLE,
+    POSITION_HEADER_ALIASES,
     TITLE_HEADER_ALIASES,
     WATCH_HEADER_ALIASES,
 )
@@ -33,6 +38,10 @@ def _role_for(label: str) -> ColumnRole:
         return "title"
     if normalized in ORDER_HEADER_ALIASES:
         return "order"
+    if normalized in IDENTITY_HEADER_ALIASES:
+        return IDENTITY_COLUMN_ROLE
+    if normalized in POSITION_HEADER_ALIASES:
+        return POSITION_COLUMN_ROLE
     return "other"
 
 
@@ -111,3 +120,18 @@ def build_columns(sheet: Worksheet) -> list[ColumnSpec]:
 def watch_column(columns: list[ColumnSpec]) -> ColumnSpec | None:
     """The column that records watch status, if the sheet has one."""
     return next((column for column in columns if column.role == "watch"), None)
+
+
+def identity_column(columns: list[ColumnSpec]) -> ColumnSpec | None:
+    """The column carrying each row's identity, if the sheet has one."""
+    return next((column for column in columns if column.role == IDENTITY_COLUMN_ROLE), None)
+
+
+def position_column(columns: list[ColumnSpec]) -> ColumnSpec | None:
+    """The app-owned playback position column, if the sheet has one."""
+    return next((column for column in columns if column.role == POSITION_COLUMN_ROLE), None)
+
+
+def public_columns(columns: list[ColumnSpec]) -> list[ColumnSpec]:
+    """The columns the owner authored; the app's own bookkeeping columns are not the UI's to show or edit."""
+    return [column for column in columns if column.role not in APP_OWNED_COLUMN_ROLES]

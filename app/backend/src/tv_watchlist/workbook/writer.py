@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import time
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +28,10 @@ from tv_watchlist.constants import (
 )
 from tv_watchlist.models.column_spec import ColumnSpec
 from tv_watchlist.models.row_change import RowChange
-from tv_watchlist.workbook import ranges
+
+# Module form, not `from .identity import ...`: `identity` imports this module for its own sheet
+# primitives, so the two are a cycle and only the module form survives either import order.
+from tv_watchlist.workbook import identity, ranges
 from tv_watchlist.workbook.cells import cell_text, last_data_row
 from tv_watchlist.workbook.errors import (
     InvalidChoiceError,
@@ -36,7 +40,7 @@ from tv_watchlist.workbook.errors import (
     WorkbookLockedError,
 )
 from tv_watchlist.workbook.locking import excel_lock_path, is_locked_by_excel
-from tv_watchlist.workbook.schema import build_columns, header_width, watch_column
+from tv_watchlist.workbook.schema import build_columns, header_width, public_columns, watch_column
 from tv_watchlist.workbook.styling import apply_body_style, apply_header_style, clone_style
 
 
@@ -119,6 +123,7 @@ def _coerce(text: str, numeric: bool) -> Any:  # noqa: ANN401 - mirrors openpyxl
 
 
 def _validate(columns: list[ColumnSpec], values: dict[str, str]) -> list[tuple[ColumnSpec, str]]:
+    """Resolve a write against the owner's own columns; callers pass `public_columns`, never the whole grid."""
     by_key = {column.key: column for column in columns}
     resolved: list[tuple[ColumnSpec, str]] = []
     for key, value in values.items():
@@ -156,6 +161,35 @@ def _order_column(columns: list[ColumnSpec]) -> ColumnSpec | None:
 def _grid_width(sheet: Worksheet, columns: list[ColumnSpec]) -> int:
     """The header run's width — never sheet.max_column, which counts stray cells to the right."""
     return max(header_width(sheet), max((column.index for column in columns), default=1))
+
+
+def _append_styled_column(
+    sheet: Worksheet, columns: list[ColumnSpec], label: str, width: float, *, hidden: bool = False
+) -> tuple[int, int]:
+    """Add a column at the far right of the header run, styled like the sheet's own, and stretch the ranges.
+
+    Returns its 1-based index and the sheet's last data row, which every caller needs next. Shared by the
+    `Watched?` column the owner asks for and the `Row ID` column the app mints for itself: both land the
+    same way, and a second copy of this would be a second chance to forget `ranges.sync`.
+    """
+    index = _grid_width(sheet, columns) + 1
+    last = last_data_row(sheet, index - 1)
+
+    header = sheet.cell(row=HEADER_ROW, column=index)
+    header.value = label
+    if columns:
+        clone_style(sheet.cell(row=HEADER_ROW, column=columns[0].index), header)
+    else:
+        apply_header_style(header, DEFAULT_ACCENT_RGB)
+    for row in range(FIRST_DATA_ROW, last + 1):
+        apply_body_style(sheet.cell(row=row, column=index))
+    dimension = sheet.column_dimensions[get_column_letter(index)]
+    dimension.width = width
+    if hidden:
+        dimension.hidden = True
+
+    ranges.sync(sheet, last, index)
+    return index, last
 
 
 def _take_hyperlinks(sheet: Worksheet, last_row: int, width: int) -> list[tuple[int, int, Any]]:
@@ -198,7 +232,7 @@ def update_row(path: Path, row: int, values: dict[str, str]) -> None:
     """Set one row's cells."""
     workbook, sheet = _open(path)
     columns = build_columns(sheet)
-    resolved = _validate(columns, values)
+    resolved = _validate(public_columns(columns), values)
     last = last_data_row(sheet, _grid_width(sheet, columns))
     if row < FIRST_DATA_ROW or row > last:
         raise RowNotFoundError(str(row))
@@ -210,7 +244,7 @@ def append_row(path: Path, values: dict[str, str]) -> int:
     """Add a row at the end of the table and return its Excel row number."""
     workbook, sheet = _open(path)
     columns = build_columns(sheet)
-    resolved = _validate(columns, values)
+    resolved = _validate(public_columns(columns), values)
     width = _grid_width(sheet, columns)
     last = last_data_row(sheet, width)
     order = _order_column(columns)
@@ -331,6 +365,7 @@ def _planned_values(
     rows: list[int],
 ) -> dict[int, list[Any]]:
     """Every row's final cell values keyed by sequence id, read before any of them move."""
+    editable = public_columns(columns)
     planned: dict[int, list[Any]] = {
         row: [sheet.cell(row=row, column=index).value for index in range(1, width + 1)] for row in rows
     }
@@ -342,7 +377,7 @@ def _planned_values(
             identifier = change.row
         else:
             continue
-        _place(planned[identifier], _validate(columns, change.cells), numeric)
+        _place(planned[identifier], _validate(editable, change.cells), numeric)
     return planned
 
 
@@ -395,20 +430,45 @@ def add_watch_column(path: Path) -> None:
     columns = build_columns(sheet)
     if watch_column(columns) is not None:
         return
-    index = _grid_width(sheet, columns) + 1
-    last = last_data_row(sheet, index - 1)
-
-    header = sheet.cell(row=HEADER_ROW, column=index)
-    header.value = WATCH_HEADER_LABEL
-    if columns:
-        clone_style(sheet.cell(row=HEADER_ROW, column=columns[0].index), header)
-    else:
-        apply_header_style(header, DEFAULT_ACCENT_RGB)
-    for row in range(FIRST_DATA_ROW, last + 1):
-        apply_body_style(sheet.cell(row=row, column=index))
-    sheet.column_dimensions[get_column_letter(index)].width = WATCH_COLUMN_WIDTH
-
-    ranges.sync(sheet, last, index)
+    index, last = _append_styled_column(sheet, columns, WATCH_HEADER_LABEL, WATCH_COLUMN_WIDTH)
     ranges.add_choice_validation(sheet, index, last, list(DEFAULT_WATCH_CHOICES))
     ranges.add_watched_highlight(sheet, index, last)
+    _save(workbook, path)
+
+
+def _writeback_cells_on(
+    sheet: Worksheet, columns: list[ColumnSpec], cells_by_row: Mapping[int, Mapping[str, str]]
+) -> None:
+    """Validate all projected public cells before applying them to an in-memory sheet."""
+    last = last_data_row(sheet, _grid_width(sheet, columns))
+    resolved_by_row = {row: _validate(public_columns(columns), dict(values)) for row, values in cells_by_row.items()}
+    for row in resolved_by_row:
+        if row < FIRST_DATA_ROW or row > last:
+            raise RowNotFoundError(str(row))
+    numeric = _numeric_columns(sheet, columns, FIRST_DATA_ROW, last)
+    for row, resolved in resolved_by_row.items():
+        _write_cells(sheet, row, resolved, numeric)
+
+
+def apply_ingest_writeback(
+    path: Path, ids_by_row: Mapping[int, str], cells_by_row: Mapping[int, Mapping[str, str]]
+) -> None:
+    """The ingest's whole diff in one rewrite: minted identities and mirrored cells together.
+
+    One open, one temp file, one `os.replace`, one mtime bump - because two writes would mean two
+    snapshots, two stamps, and a second chance for Excel to take the file between them. Every cell is
+    resolved against `public_columns` before anything is written, so a key the owner never authored
+    refuses the whole pass rather than half-applying it; the Row ID column is reachable only through
+    `ids_by_row`, never as a cell (CLAUDE.md section 3.4).
+    """
+    workbook, sheet = _open(path)
+    columns = build_columns(sheet)
+    last = last_data_row(sheet, _grid_width(sheet, columns))
+    _writeback_cells_on(sheet, columns, cells_by_row)
+
+    index = identity.ensure_identity_column_on(sheet, columns)
+    identity.write_row_ids_on(sheet, index, ids_by_row)
+    # No row moved, so this only matters when the identity column was minted just now and the sheet's
+    # constructs have to reach the new width.
+    ranges.sync(sheet, last, max(index, _grid_width(sheet, columns)))
     _save(workbook, path)

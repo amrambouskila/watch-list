@@ -14,6 +14,8 @@ const READY_TIMEOUT_MS = 30_000;
  */
 export async function openProbe(page: Page, surface: SurfaceName): Promise<void> {
   const refused: string[] = [];
+  // Native media requests bypass window.fetch, so intercept them at the browser boundary too.
+  await page.route("**/api/playback/*/stream", (route) => route.fulfill({ status: 200, contentType: "video/mp4", body: "" }));
   await page.route(
     (url) => url.origin !== PROBE_ORIGIN,
     async (route) => {
@@ -26,7 +28,9 @@ export async function openProbe(page: Page, surface: SurfaceName): Promise<void>
   await page.waitForSelector(READY_SELECTOR, { timeout: READY_TIMEOUT_MS });
   await page.evaluate(async () => {
     await document.fonts.ready;
-    await Promise.all(document.getAnimations().map((animation) => animation.finished));
+    // Settled rather than fulfilled: a cancelled transition rejects `finished` with AbortError, and
+    // a cancelled transition is exactly one that has stopped moving the box this is waiting on.
+    await Promise.allSettled(document.getAnimations().map((animation) => animation.finished));
   });
 
   expect(refused, "the probe addressed something off its own origin").toEqual([]);

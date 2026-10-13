@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from zipfile import BadZipFile
 
@@ -20,7 +20,7 @@ from tv_watchlist.models.row_write import RowWrite
 from tv_watchlist.models.shadowed_workbook import ShadowedWorkbook
 from tv_watchlist.models.unreadable_workbook import UnreadableWorkbook
 from tv_watchlist.services import hero_backup, retirement
-from tv_watchlist.workbook import backup, creator, discovery, heroes, reader, renaming, writer
+from tv_watchlist.workbook import backup, creator, discovery, heroes, identity, position, reader, renaming, writer
 from tv_watchlist.workbook.errors import UnreadableWorkbookError
 from tv_watchlist.workbook.freshness import guard_fresh
 from tv_watchlist.workbook.locking import is_locked_by_excel, lock_for
@@ -116,6 +116,19 @@ class Catalog:
         async with lock_for(path):
             return await asyncio.to_thread(self._read_live_lock, path)
 
+    def _projection(self, path: Path) -> reader.WorkbookProjection:
+        try:
+            return reader.read_projection(path)
+        except _UNREADABLE as error:
+            raise UnreadableWorkbookError(f"{path.name} ({type(error).__name__})") from error
+
+    async def projection(self, wanted_id: str) -> reader.WorkbookProjection:
+        """The reconciler's one read path: the grid the UI sees, plus the row ids it never does."""
+        # Uncached on purpose: the reconciler compares against the file as it is now, not as it was read.
+        path = await asyncio.to_thread(discovery.resolve, self.library_dir, wanted_id)
+        async with lock_for(path):
+            return await asyncio.to_thread(self._projection, path)
+
     def _snapshot(self, path: Path, interval_seconds: float) -> None:
         backup.snapshot(path, self._settings.backup_dir, self._settings.backup_retention, interval_seconds)
 
@@ -168,6 +181,46 @@ class Catalog:
     async def add_watch_column(self, wanted_id: str, expected_mtime: float) -> CategoryDetail:
         """Give a sheet a Watched? column and return the reloaded category."""
         return await self._write(wanted_id, expected_mtime, writer.add_watch_column)
+
+    async def ensure_identity_column(self, wanted_id: str, expected_mtime: float) -> CategoryDetail:
+        """Give a sheet its hidden Row ID column and return the reloaded category."""
+        return await self._write(wanted_id, expected_mtime, identity.ensure_identity_column)
+
+    async def write_row_ids(
+        self, wanted_id: str, ids_by_row: Mapping[int, str], expected_mtime: float
+    ) -> CategoryDetail:
+        """Record each row's identity and return the reloaded category."""
+        return await self._write(wanted_id, expected_mtime, lambda path: identity.write_row_ids(path, ids_by_row))
+
+    async def apply_ingest_writeback(
+        self,
+        wanted_id: str,
+        ids_by_row: Mapping[int, str],
+        cells_by_row: Mapping[int, Mapping[str, str]],
+        expected_mtime: float,
+    ) -> CategoryDetail:
+        """The ingest's whole diff as one guarded, snapshotted, atomic write, and the sheet as it now stands.
+
+        One call per pass, never one per row: the returned detail carries the post-write mtime the
+        reconciler stores, so the next pass does not read its own write as a change to ingest.
+        """
+        return await self._write(
+            wanted_id, expected_mtime, lambda path: writer.apply_ingest_writeback(path, ids_by_row, cells_by_row)
+        )
+
+    async def apply_position_writeback(
+        self,
+        wanted_id: str,
+        seconds_by_row: Mapping[int, int],
+        cells_by_row: Mapping[int, Mapping[str, str]],
+        expected_mtime: float,
+    ) -> CategoryDetail:
+        """Project one player snapshot under one freshness guard, backup and atomic workbook swap."""
+        return await self._write(
+            wanted_id,
+            expected_mtime,
+            lambda path: position.apply_position_writeback(path, seconds_by_row, cells_by_row),
+        )
 
     def _rename(self, path: Path, stem: str, expected_mtime: float) -> CategoryDetail:
         guard_fresh(path, expected_mtime)
